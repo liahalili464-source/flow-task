@@ -452,8 +452,9 @@ window.askDelete = async (id) => {
 };
 
 function openModal(task = null) {
-  document.getElementById("modalHeading").textContent = task ? "עריכת משימה" : "✨ מה צריך לעשות?";
-  document.querySelector(".modal-kicker").textContent = task ? "עריכת משימה" : "משימה חדשה";
+  document.getElementById("modalHeading").textContent = task ? "עריכת משימה" : "מה קפץ לך לראש?";
+  const kicker = document.getElementById("modalKicker") || document.querySelector(".modal-kicker");
+  if (kicker) kicker.textContent = task ? "עריכת משימה" : "משימה חדשה";
   document.getElementById("taskId").value = task?.id || "";
   document.getElementById("title").value = task?.title || "";
   document.getElementById("category").value = task?.category || "לימודים";
@@ -465,7 +466,7 @@ function openModal(task = null) {
   document.getElementById("notes").value = task?.notes || "";
   document.getElementById("syncCalendar").checked = Boolean(task?.google_event_id);
   document.getElementById("deleteBtn").classList.toggle("hidden", !task);
-  syncChoiceButtons();
+  syncCreateButtons();
   document.getElementById("taskModal").classList.remove("hidden");
 }
 
@@ -753,3 +754,126 @@ document.addEventListener("DOMContentLoaded", () => {
   initChoiceButtons();
   document.getElementById("planDayBtn")?.addEventListener("click", buildDailyPlan);
 });
+
+
+/* === MindFlow: calm create task + free-time suggestions === */
+
+function initCreateTaskUX() {
+  document.querySelectorAll(".bubble-row").forEach(row => {
+    const targetId = row.dataset.target;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    row.querySelectorAll(".bubble").forEach(button => {
+      button.addEventListener("click", () => {
+        target.value = button.dataset.value;
+        syncCreateButtons();
+      });
+    });
+  });
+
+  document.querySelectorAll(".date-chip").forEach(button => {
+    button.addEventListener("click", () => {
+      setDeadlineShortcut(button.dataset.date);
+      document.querySelectorAll(".date-chip").forEach(b => b.classList.toggle("active", b === button));
+    });
+  });
+
+  document.getElementById("smartFillBtn")?.addEventListener("click", () => {
+    const title = document.getElementById("title").value.trim();
+    if (!title) return alert("כתבי קודם את המשימה ואז אלחץ סדר לי אוטומטית.");
+
+    const parsed = parseLineToTask(title);
+    document.getElementById("category").value = parsed.category || "אחר";
+    document.getElementById("priority").value = parsed.priority || "בינונית";
+    document.getElementById("complexity").value = parsed.complexity || "בינונית";
+    document.getElementById("estimate").value = String(parsed.estimate_minutes || 30);
+    if (parsed.deadline) document.getElementById("deadline").value = isoToInput(parsed.deadline);
+    syncCreateButtons();
+  });
+
+  document.querySelectorAll(".time-option").forEach(button => {
+    button.addEventListener("click", () => suggestTasksForTime(Number(button.dataset.minutes)));
+  });
+}
+
+function syncCreateButtons() {
+  document.querySelectorAll(".bubble-row").forEach(row => {
+    const target = document.getElementById(row.dataset.target);
+    if (!target) return;
+    row.querySelectorAll(".bubble").forEach(button => {
+      button.classList.toggle("selected", String(target.value) === String(button.dataset.value));
+    });
+  });
+}
+
+function setDeadlineShortcut(type) {
+  const input = document.getElementById("deadline");
+  if (!input) return;
+
+  if (type === "none") {
+    input.value = "";
+    return;
+  }
+
+  const d = new Date();
+  if (type === "tomorrow") d.setDate(d.getDate() + 1);
+  if (type === "week") d.setDate(d.getDate() + 7);
+  d.setHours(18, 0, 0, 0);
+
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  input.value = d.toISOString().slice(0, 16);
+}
+
+function suggestTasksForTime(minutes) {
+  const open = tasks.filter(t => !isDone(t));
+  const fitting = open
+    .filter(t => Number(t.estimate_minutes || 30) <= minutes)
+    .sort((a, b) => scoreForFreeTime(b, minutes) - scoreForFreeTime(a, minutes))
+    .slice(0, 4);
+
+  const panel = document.getElementById("timeSuggestionPanel");
+  const list = document.getElementById("timeSuggestionList");
+  const title = document.getElementById("timeSuggestionTitle");
+
+  title.textContent = `יש לך ${minutes} דקות? אלה המשימות שמתאימות`;
+
+  if (!fitting.length) {
+    list.innerHTML = `<div class="empty">לא מצאתי משימה שמתאימה לזמן הזה. אולי להוסיף משימה קטנה?</div>`;
+  } else {
+    list.innerHTML = fitting.map((task, index) => `
+      <article class="plan-step">
+        <div class="plan-number">${index + 1}</div>
+        <div>
+          <h4>${escapeHtml(task.title)}</h4>
+          <p>${freeTimeReason(task, minutes)}<br><strong>${task.estimate_minutes || 30} דק׳</strong> · ${formatDate(task.deadline)} · ${priorityLabel(task.priority)}</p>
+          <button class="icon-btn" onclick="window.openEdit('${task.id}')">לפתוח</button>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  panel.classList.remove("hidden");
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scoreForFreeTime(task, minutes) {
+  let score = 0;
+  const estimate = Number(task.estimate_minutes || 30);
+  score += Math.max(0, 30 - Math.abs(minutes - estimate));
+  if (isLate(task)) score += 120;
+  if (isToday(task)) score += 90;
+  if (isThisWeek(task)) score += 35;
+  if (task.priority === "גבוהה") score += 45;
+  if (task.complexity === "קטנה") score += 15;
+  return score;
+}
+
+function freeTimeReason(task, minutes) {
+  if (isLate(task)) return "היא באיחור ומתאימה לחלון הזמן שבחרת.";
+  if (isToday(task)) return "היא להיום, והזמן המשוער מתאים למה שיש לך עכשיו.";
+  if (task.priority === "גבוהה") return "היא דחופה ומתאימה לזמן שבחרת.";
+  return "זו משימה שמתאימה לזמן הפנוי שהגדרת.";
+}
+
+document.addEventListener("DOMContentLoaded", initCreateTaskUX);

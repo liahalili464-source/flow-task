@@ -82,6 +82,29 @@
           <span id="weekLine">0 השבוע</span>
         </div>
 
+        <section class="free-time-card">
+          <div>
+            <h3>יש לך זמן פנוי?</h3>
+            <p>בחרי כמה זמן יש לך עכשיו, ו-MindFlow יציע משימות שמתאימות.</p>
+          </div>
+          <div class="free-time-actions">
+            <button type="button" class="time-option" data-minutes="15">15 דק׳</button>
+            <button type="button" class="time-option" data-minutes="30">30 דק׳</button>
+            <button type="button" class="time-option" data-minutes="60">שעה</button>
+            <button type="button" class="time-option" data-minutes="120">שעתיים</button>
+          </div>
+        </section>
+
+        <section id="timeSuggestionPanel" class="panel time-suggestion-panel hidden">
+          <div class="panel-head">
+            <div>
+              <h3 id="timeSuggestionTitle">משימות שמתאימות לזמן שלך</h3>
+              <p>ההצעה מתחשבת בזמן משוער, דחיפות ודדליין.</p>
+            </div>
+          </div>
+          <div id="timeSuggestionList" class="daily-plan-list"></div>
+        </section>
+
         <section class="ai-plan-strip">
           <div>
             <h3>רוצה שאסדר לך את היום?</h3>
@@ -214,129 +237,124 @@
       </section>
     </main>
   </div>
-
   <div id="taskModal" class="modal hidden">
-    <div class="modal-card task-modal-card">
-      <div class="modal-head">
+    <div class="create-sheet">
+      <div class="create-header">
+        <button id="closeModalBtn" class="close-pill">×</button>
         <div>
-          <p class="modal-kicker">משימה חדשה</p>
-          <h3 id="modalHeading">✨ מה צריך לעשות?</h3>
+          <p id="modalKicker" class="modal-kicker">משימה חדשה</p>
+          <h3 id="modalHeading">מה קפץ לך לראש?</h3>
         </div>
-        <button id="closeModalBtn" class="x">×</button>
       </div>
 
-      <form id="taskForm" class="task-form pretty-task-form">
+      <form id="taskForm" class="create-form">
         <input id="taskId" type="hidden" />
 
-        <section class="task-title-block">
-          <label for="title">שם המשימה</label>
-          <input id="title" class="title-input" required placeholder="לסיים עבודה בפסיכולוגיה עד ראשון..." />
-          <p class="field-hint">טיפ: אפשר לכתוב חופשי, למשל “לשלוח קאבר ללקוח מחר”.</p>
+        <section class="create-hero-input">
+          <label for="title">המשימה</label>
+          <textarea id="title" required rows="2" placeholder="לדוגמה: לערוך פודקאסט עד מחר בערב"></textarea>
+          <button id="smartFillBtn" class="mini-ai-btn" type="button">✨ סדר לי אוטומטית</button>
         </section>
 
-        <section class="choice-section">
-          <div class="choice-title">🏷 תחום</div>
-          <div class="choice-grid" data-target="category">
-            <button type="button" class="choice selected" data-value="לימודים">📚 לימודים</button>
-            <button type="button" class="choice" data-value="עסק">💼 עסק</button>
-            <button type="button" class="choice" data-value="עבודה">🏢 עבודה</button>
-            <button type="button" class="choice" data-value="לקוחות">🤝 לקוחות</button>
-            <button type="button" class="choice" data-value="אישי">🏠 אישי</button>
-            <button type="button" class="choice" data-value="אחר">✨ אחר</button>
+        <section class="create-section">
+          <div class="section-title">מתי זה צריך לקרות?</div>
+          <div class="date-shortcuts">
+            <button type="button" class="date-chip" data-date="today">היום</button>
+            <button type="button" class="date-chip" data-date="tomorrow">מחר</button>
+            <button type="button" class="date-chip" data-date="week">השבוע</button>
+            <button type="button" class="date-chip" data-date="none">בלי תאריך</button>
           </div>
-          <select id="category" class="hidden-native-select">
-            <option>לימודים</option>
-            <option>עסק</option>
-            <option>עבודה</option>
-            <option>לקוחות</option>
-            <option>אישי</option>
-            <option>אחר</option>
+          <input id="deadline" type="datetime-local" class="soft-input" />
+        </section>
+
+        <section class="create-section">
+          <div class="section-title">תחום</div>
+          <div class="bubble-row" data-target="category">
+            <button type="button" class="bubble selected" data-value="לימודים">📚 לימודים</button>
+            <button type="button" class="bubble" data-value="עסק">💼 עסק</button>
+            <button type="button" class="bubble" data-value="עבודה">🏢 עבודה</button>
+            <button type="button" class="bubble" data-value="לקוחות">🤝 לקוחות</button>
+            <button type="button" class="bubble" data-value="אישי">🏠 אישי</button>
+            <button type="button" class="bubble" data-value="אחר">✨ אחר</button>
+          </div>
+          <select id="category" class="native-hidden">
+            <option>לימודים</option><option>עסק</option><option>עבודה</option><option>לקוחות</option><option>אישי</option><option>אחר</option>
           </select>
         </section>
 
-        <section class="modal-cardlet">
-          <label for="deadline">📅 דדליין</label>
-          <input id="deadline" type="datetime-local" />
-        </section>
-
-        <section class="choice-section">
-          <div class="choice-title">🔥 דחיפות</div>
-          <div class="choice-grid three" data-target="priority">
-            <button type="button" class="choice calm" data-value="נמוכה">🟢 רגוע</button>
-            <button type="button" class="choice selected" data-value="בינונית">🟡 רגיל</button>
-            <button type="button" class="choice hot" data-value="גבוהה">🔴 דחוף</button>
-          </div>
-          <select id="priority" class="hidden-native-select">
-            <option value="גבוהה">גבוהה</option>
-            <option value="בינונית" selected>בינונית</option>
-            <option value="נמוכה">נמוכה</option>
-          </select>
-        </section>
-
-        <section class="choice-section">
-          <div class="choice-title">⚡ מורכבות</div>
-          <div class="choice-grid three" data-target="complexity">
-            <button type="button" class="choice" data-value="קטנה">⚡ זריז</button>
-            <button type="button" class="choice selected" data-value="בינונית">🧩 בינוני</button>
-            <button type="button" class="choice" data-value="מורכבת">🚀 גדול</button>
-          </div>
-          <select id="complexity" class="hidden-native-select">
-            <option value="קטנה">קטנה</option>
-            <option value="בינונית" selected>בינונית</option>
-            <option value="מורכבת">מורכבת</option>
-          </select>
-        </section>
-
-        <section class="choice-section">
-          <div class="choice-title">⏱ זמן משוער</div>
-          <div class="choice-grid four" data-target="estimate">
-            <button type="button" class="choice" data-value="15">15 דק׳</button>
-            <button type="button" class="choice selected" data-value="30">30 דק׳</button>
-            <button type="button" class="choice" data-value="60">שעה</button>
-            <button type="button" class="choice" data-value="120">שעתיים+</button>
-          </div>
-          <select id="estimate" class="hidden-native-select">
-            <option value="15">15 דקות</option>
-            <option value="30" selected>30 דקות</option>
-            <option value="60">שעה</option>
-            <option value="120">שעתיים+</option>
-          </select>
-        </section>
-
-        <section class="choice-section status-section">
-          <div class="choice-title">📌 סטטוס</div>
-          <div class="choice-grid four" data-target="status">
-            <button type="button" class="choice selected" data-value="פתוחה">פתוחה</button>
-            <button type="button" class="choice" data-value="בתהליך">בתהליך</button>
-            <button type="button" class="choice" data-value="מחכה למישהו">מחכה</button>
-            <button type="button" class="choice" data-value="בוצע">בוצע</button>
-          </div>
-          <select id="status" class="hidden-native-select">
-            <option value="פתוחה" selected>פתוחה</option>
-            <option value="בתהליך">בתהליך</option>
-            <option value="מחכה למישהו">מחכה למישהו</option>
-            <option value="בוצע">בוצע</option>
-          </select>
-        </section>
-
-        <section class="calendar-toggle-card">
+        <section class="create-section compact-grid">
           <div>
-            <strong>📅 Google Calendar</strong>
-            <p>להוסיף או לעדכן את המשימה גם ביומן.</p>
+            <div class="section-title">דחיפות</div>
+            <div class="bubble-row small" data-target="priority">
+              <button type="button" class="bubble" data-value="נמוכה">רגוע</button>
+              <button type="button" class="bubble selected" data-value="בינונית">רגיל</button>
+              <button type="button" class="bubble danger-bubble" data-value="גבוהה">דחוף</button>
+            </div>
+            <select id="priority" class="native-hidden">
+              <option value="גבוהה">גבוהה</option><option value="בינונית" selected>בינונית</option><option value="נמוכה">נמוכה</option>
+            </select>
           </div>
-          <label class="switch">
+
+          <div>
+            <div class="section-title">גודל</div>
+            <div class="bubble-row small" data-target="complexity">
+              <button type="button" class="bubble" data-value="קטנה">קטנה</button>
+              <button type="button" class="bubble selected" data-value="בינונית">בינונית</button>
+              <button type="button" class="bubble" data-value="מורכבת">גדולה</button>
+            </div>
+            <select id="complexity" class="native-hidden">
+              <option value="קטנה">קטנה</option><option value="בינונית" selected>בינונית</option><option value="מורכבת">מורכבת</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="create-section">
+          <div class="section-title">כמה זמן זה בערך?</div>
+          <div class="bubble-row time-row" data-target="estimate">
+            <button type="button" class="bubble" data-value="15">15 דק׳</button>
+            <button type="button" class="bubble selected" data-value="30">30 דק׳</button>
+            <button type="button" class="bubble" data-value="60">שעה</button>
+            <button type="button" class="bubble" data-value="120">שעתיים+</button>
+          </div>
+          <select id="estimate" class="native-hidden">
+            <option value="15">15 דקות</option><option value="30" selected>30 דקות</option><option value="60">שעה</option><option value="120">שעתיים+</option>
+          </select>
+        </section>
+
+        <section class="create-section calendar-line">
+          <div>
+            <strong>Google Calendar</strong>
+            <p>ליצור/לעדכן גם אירוע ביומן</p>
+          </div>
+          <label class="simple-switch">
             <input id="syncCalendar" type="checkbox" />
             <span></span>
           </label>
         </section>
 
-        <details class="notes-details">
-          <summary>📝 הערות נוספות</summary>
-          <textarea id="notes" placeholder="קישורים, פירוט, מה צריך לעשות בפועל..."></textarea>
+        <details class="extra-details">
+          <summary>עוד אפשרויות</summary>
+
+          <div class="extra-inner">
+            <label>
+              סטטוס
+              <select id="status">
+                <option value="פתוחה" selected>פתוחה</option>
+                <option value="בתהליך">בתהליך</option>
+                <option value="מחכה למישהו">מחכה למישהו</option>
+                <option value="בוצע">בוצע</option>
+              </select>
+            </label>
+
+            <label>
+              הערות
+              <textarea id="notes" placeholder="קישור, פירוט, מה בדיוק צריך לעשות..."></textarea>
+            </label>
+          </div>
         </details>
 
-        <div class="modal-actions sticky-actions">
-          <button class="primary save-big" type="submit">✨ שמירה</button>
+        <div class="create-actions">
+          <button class="primary create-save" type="submit">להוסיף למשימות</button>
           <button id="deleteBtn" class="danger hidden" type="button">מחיקה</button>
         </div>
       </form>
