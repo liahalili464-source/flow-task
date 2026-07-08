@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lishu Flow</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-orb orb-one"></div>
+  <div class="bg-orb orb-two"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">L</div>
+        <div>
+          <h1>Lishu Flow</h1>
+          <p>הכל בראש שקט</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-filter="all">✨ הכל</button>
+        <button class="nav-item" data-filter="today">☀️ היום</button>
+        <button class="nav-item" data-filter="week">🗓️ השבוע</button>
+        <button class="nav-item" data-filter="late">🔥 באיחור</button>
+        <button class="nav-item" data-filter="quick">⚡ זריזים</button>
+        <button class="nav-item" data-filter="no-date">🌙 בלי תאריך</button>
+      </nav>
+
+      <button id="summaryBtn" class="summary-button">סכמי לי רגע</button>
+      <button id="enableNotificationsBtn" class="ghost-button">הפעלת תזכורות</button>
+    </aside>
+
+    <main class="main">
+      <section class="topbar">
+        <div>
+          <p class="hello">היי ליה, מה סוגרות היום?</p>
+          <h2 id="dailyLine">בואי נעשה סדר בלי להיבהל.</h2>
+        </div>
+        <div class="date-pill" id="todayDate"></div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span id="todayCount">0</span>
+          <p>להיום</p>
+        </article>
+        <article class="stat-card">
+          <span id="weekCount">0</span>
+          <p>השבוע</p>
+        </article>
+        <article class="stat-card danger">
+          <span id="lateCount">0</span>
+          <p>באיחור</p>
+        </article>
+        <article class="stat-card">
+          <span id="openCount">0</span>
+          <p>פתוחות</p>
+        </article>
+      </section>
+
+      <section class="add-card">
+        <div class="add-card-head">
+          <div>
+            <h3>הוספת משימה חדשה</h3>
+            <p>כתבי מהר, נסדר אחר כך.</p>
+          </div>
+          <button id="toggleAdvancedBtn" class="small-button">עוד פרטים</button>
+        </div>
+
+        <form id="taskForm" class="task-form">
+          <input id="title" class="task-title-input" required placeholder="מה צריך לעשות?" />
+
+          <div class="chips-row">
+            <select id="category">
+              <option>לימודים</option>
+              <option>עסק</option>
+              <option>עבודה</option>
+              <option>לקוחות</option>
+              <option>אישי</option>
+              <option>אחר</option>
+            </select>
+
+            <input id="deadline" type="datetime-local" />
+
+            <select id="priority">
+              <option value="גבוהה">דחוף</option>
+              <option value="בינונית" selected>רגיל</option>
+              <option value="נמוכה">רגוע</option>
+            </select>
+
+            <button class="primary-btn" type="submit">להוסיף</button>
+          </div>
+
+          <div id="advancedFields" class="advanced hidden">
+            <select id="complexity">
+              <option value="קטנה">קטנה וזריזה</option>
+              <option value="בינונית" selected>בינונית</option>
+              <option value="מורכבת">מורכבת</option>
+            </select>
+
+            <select id="status">
+              <option value="פתוחה" selected>פתוחה</option>
+              <option value="בתהליך">בתהליך</option>
+              <option value="מחכה למישהו">מחכה למישהו</option>
+              <option value="בוצע">בוצע</option>
+            </select>
+
+            <textarea id="notes" placeholder="הערות, קישור, מה בדיוק צריך לעשות..."></textarea>
+          </div>
+        </form>
+      </section>
+
+      <section class="content-card">
+        <div class="content-head">
+          <div>
+            <h3 id="listTitle">כל המשימות</h3>
+            <p id="listSubtitle">הכל במקום אחד, בלי רעש.</p>
+          </div>
+          <input id="searchInput" class="search" placeholder="חיפוש..." />
+        </div>
+
+        <div id="tasksList" class="tasks-list"></div>
+      </section>
+
+      <section id="summaryBox" class="summary-box hidden">
+        <div class="content-head">
+          <div>
+            <h3>הסיכום שלך</h3>
+            <p>אפשר להעתיק לעצמך לוואטסאפ / נוטס.</p>
+          </div>
+          <button id="copySummaryBtn" class="small-button">העתקה</button>
+        </div>
+        <pre id="summaryText"></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
