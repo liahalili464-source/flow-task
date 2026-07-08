@@ -14,11 +14,11 @@
     <div class="auth-card">
       <div class="logo">✦</div>
       <h1>MindFlow</h1>
-      <p>המערכת שעושה סדר בראש: משימות, תכנון, סיכום ויומן — במקום אחד.</p>
+      <p>מקום אחד שמוריד עומס מהראש: משימות, תכנון, סיכום ויומן.</p>
 
       <div class="tabs">
-        <button id="loginTab" class="tab active">כניסה</button>
-        <button id="signupTab" class="tab">הרשמה</button>
+        <button id="loginTab" class="tab active" type="button">כניסה</button>
+        <button id="signupTab" class="tab" type="button">הרשמה</button>
       </div>
 
       <form id="loginForm" class="auth-form">
@@ -29,7 +29,7 @@
       </form>
 
       <form id="signupForm" class="auth-form hidden">
-        <input id="signupName" placeholder="שם" required />
+        <input id="signupName" type="text" placeholder="שם" required />
         <input id="signupEmail" type="email" placeholder="אימייל" required />
         <input id="signupPassword" type="password" placeholder="סיסמה - לפחות 6 תווים" required />
         <button class="primary" type="submit">ליצור משתמש</button>
@@ -73,19 +73,20 @@
         </div>
       </div>
 
-      <nav>
-        <button class="nav active" data-view="dashboard">היום</button>
-        <button class="nav" data-view="brain">Brain Dump</button>
-        <button class="nav" data-view="tasks">משימות</button>
-        <button class="nav" data-view="planner">שבועי</button>
-        <button class="nav" data-view="summary">סיכום</button>
+      <nav class="side-nav">
+        <button class="nav active" data-view="dashboard" type="button">היום</button>
+        <button class="nav" data-view="brain" type="button">Brain Dump</button>
+        <button class="nav" data-view="tasks" type="button">משימות</button>
+        <button class="nav" data-view="planner" type="button">שבועי</button>
+        <button class="nav" data-view="summary" type="button">סיכום</button>
+        <button class="nav" data-view="settings" type="button">הגדרות</button>
       </nav>
 
       <div class="sidebar-bottom">
-        <button id="googleBtn" class="soft">חיבור Google Calendar</button>
-        <button id="notifyBtn" class="soft">הפעלת תזכורות</button>
-        <button id="refreshBtn" class="soft">רענון</button>
-        <button id="logoutBtn" class="soft">יציאה</button>
+        <button id="googleBtn" class="soft" type="button">חיבור Google Calendar</button>
+        <button id="notifyBtn" class="soft" type="button">הפעלת תזכורות</button>
+        <button id="refreshBtn" class="soft" type="button">רענון</button>
+        <button id="logoutBtn" class="soft" type="button">יציאה</button>
       </div>
     </aside>
 
@@ -96,7 +97,7 @@
           <h1 id="heroTitle">בואי נעשה סדר בלי להיבהל.</h1>
           <p id="heroSubtitle">רק מה שצריך עכשיו. השאר יחכה.</p>
         </div>
-        <button id="newTaskBtn" class="hero-btn">+ משימה</button>
+        <button id="newTaskBtn" class="hero-btn" type="button">+ משימה</button>
       </header>
 
       <section id="dashboardView" class="view">
@@ -112,11 +113,10 @@
             <div>
               <p class="section-eyebrow">המלצה חכמה</p>
               <h3>מה כדאי לעשות עכשיו?</h3>
-              <p>MindFlow מסתכל על הדדליין, הדחיפות והזמן המשוער.</p>
+              <p>MindFlow מסתכל על דדליין, דחיפות וזמן משוער.</p>
             </div>
             <button id="refreshAiCoachBtn" class="soft inline" type="button">רענון</button>
           </div>
-
           <div id="aiCoachContent" class="ai-coach-content"></div>
         </section>
 
@@ -125,7 +125,7 @@
             <div>
               <p class="section-eyebrow">הוספה מהירה</p>
               <h3>משימה חדשה</h3>
-              <p>מוסיפים משימה בצורה מסודרת, בלי להרגיש שזה עוד טופס.</p>
+              <p>מוסיפים משימה מסודרת, בלי להרגיש שזה עוד טופס.</p>
             </div>
           </div>
 
@@ -224,7 +224,7 @@
         <section class="free-time-card">
           <div>
             <h3>יש לך זמן פנוי?</h3>
-            <p>בחרי כמה זמן יש לך עכשיו, ו-MindFlow יציע משימות שמתאימות.</p>
+            <p>בחרי כמה זמן יש לך עכשיו, ו־MindFlow יציע משימות שמתאימות.</p>
           </div>
           <div class="free-time-actions">
             <button type="button" class="time-option" data-minutes="15">15 דק׳</button>
@@ -248,8 +248,8 @@
           <article class="panel large-panel">
             <div class="panel-head">
               <div>
-                <h3>מה כדאי לעשות עכשיו?</h3>
-                <p>בחרתי לפי דדליין, דחיפות וגודל המשימה.</p>
+                <h3>המשימה הבאה</h3>
+                <p>אם את רוצה להתחיל ממשהו אחד בלבד.</p>
               </div>
             </div>
             <div id="nextAction" class="next-action"></div>
@@ -259,13 +259,12 @@
             <div class="panel-head">
               <div>
                 <h3>להיום</h3>
-                <p>רק מה שבאמת רלוונטי היום.</p>
+                <p>רק משימות עם דדליין היום.</p>
               </div>
             </div>
             <div id="todayList" class="clean-list"></div>
           </article>
         </section>
-
       </section>
 
       <section id="brainView" class="view hidden">
@@ -273,16 +272,18 @@
           <div class="panel-head">
             <div>
               <h3>Brain Dump</h3>
-              <p>כל שורה תהפוך למשימה. המערכת תנחש תחום, דחיפות ודדליין.</p>
+              <p>כל שורה תהפוך למשימה. MindFlow ינחש תחום, דחיפות ודדליין.</p>
             </div>
           </div>
+
           <textarea id="brainInput" class="brain" placeholder="לסיים עבודה בפסיכולוגיה עד ראשון
 לשלוח קאבר ללקוח
 ללמוד למבחן בשיבוש
 לקבוע עם ליאת"></textarea>
+
           <div class="row-actions">
-            <button id="parseBrainBtn" class="primary">להפוך למשימות</button>
-            <button id="clearBrainBtn" class="soft inline">ניקוי</button>
+            <button id="parseBrainBtn" class="primary" type="button">להפוך למשימות</button>
+            <button id="clearBrainBtn" class="soft inline" type="button">ניקוי</button>
           </div>
         </section>
 
@@ -292,7 +293,7 @@
               <h3>זיהיתי את המשימות האלה</h3>
               <p>אשרי כדי לשמור אותן.</p>
             </div>
-            <button id="savePreviewBtn" class="primary">שמירה</button>
+            <button id="savePreviewBtn" class="primary" type="button">שמירה</button>
           </div>
           <div id="previewList" class="preview-list"></div>
         </section>
@@ -303,19 +304,19 @@
           <div class="panel-head">
             <div>
               <h3>כל המשימות</h3>
-              <p>אפשר לחפש, לסנן, לערוך, לסמן בוצע ולשלוח ליומן.</p>
+              <p>חיפוש, סינון, עריכה, סימון בוצע ושליחה ליומן.</p>
             </div>
             <input id="searchInput" class="search" placeholder="חיפוש..." />
           </div>
 
           <div class="filters">
-            <button class="filter active" data-filter="all">הכל</button>
-            <button class="filter" data-filter="today">היום</button>
-            <button class="filter" data-filter="week">השבוע</button>
-            <button class="filter" data-filter="late">באיחור</button>
-            <button class="filter" data-filter="quick">זריזים</button>
-            <button class="filter" data-filter="no-date">בלי תאריך</button>
-            <button class="filter" data-filter="done">בוצע</button>
+            <button class="filter active" data-filter="all" type="button">הכל</button>
+            <button class="filter" data-filter="today" type="button">היום</button>
+            <button class="filter" data-filter="week" type="button">השבוע</button>
+            <button class="filter" data-filter="late" type="button">באיחור</button>
+            <button class="filter" data-filter="quick" type="button">זריזים</button>
+            <button class="filter" data-filter="no-date" type="button">בלי תאריך</button>
+            <button class="filter" data-filter="done" type="button">בוצע</button>
           </div>
 
           <div id="taskList" class="task-list"></div>
@@ -341,28 +342,84 @@
               <h3>סיכום משימות</h3>
               <p>מה דחוף, מה השבוע ומה הצעד הבא.</p>
             </div>
-            <button id="copySummaryBtn" class="soft inline">העתקה</button>
+            <button id="copySummaryBtn" class="soft inline" type="button">העתקה</button>
           </div>
           <pre id="summaryText" class="summary"></pre>
         </section>
       </section>
-    </main>
-  </div>
 
+      <section id="settingsView" class="view hidden">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>הגדרות</h3>
+              <p>חשבון, סיסמה, יומן והתראות.</p>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <article class="settings-card">
+              <h4>👤 החשבון שלי</h4>
+              <p id="settingsEmail">—</p>
+            </article>
+
+            <article class="settings-card">
+              <h4>🔐 שינוי סיסמה</h4>
+              <form id="changePasswordForm" class="settings-form">
+                <input id="settingsNewPassword" type="password" placeholder="סיסמה חדשה" required />
+                <input id="settingsConfirmPassword" type="password" placeholder="אימות סיסמה" required />
+                <button class="primary" type="submit">שמירת סיסמה</button>
+              </form>
+              <p id="settingsPasswordMessage" class="settings-message"></p>
+            </article>
+
+            <article class="settings-card">
+              <h4>📅 Google Calendar</h4>
+              <p id="googleStatusText">לא מחובר</p>
+              <button id="settingsGoogleBtn" class="soft inline" type="button">חיבור Google Calendar</button>
+            </article>
+
+            <article class="settings-card">
+              <h4>🔔 התראות</h4>
+              <p>התראות דפדפן עובדות כשהאתר פתוח.</p>
+              <button id="settingsNotifyBtn" class="soft inline" type="button">הפעלת תזכורות</button>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
 
     <nav class="mobile-bottom-nav" id="mobileBottomNav">
-      <button class="mobile-nav-btn active" data-view="dashboard" type="button"><span>🏠</span><small>היום</small></button>
-      <button class="mobile-nav-btn" data-view="brain" type="button"><span>🧠</span><small>בריין</small></button>
-      <button class="mobile-nav-btn mobile-add-btn" data-action="add" type="button"><span>＋</span></button>
-      <button class="mobile-nav-btn" data-view="tasks" type="button"><span>✅</span><small>משימות</small></button>
-      <button class="mobile-nav-btn" data-view="planner" type="button"><span>📅</span><small>שבועי</small></button>
+      <button class="mobile-nav-btn active" data-view="dashboard" type="button">
+        <span>🏠</span>
+        <small>היום</small>
+      </button>
+      <button class="mobile-nav-btn" data-view="brain" type="button">
+        <span>🧠</span>
+        <small>בריין</small>
+      </button>
+      <button class="mobile-nav-btn mobile-add-btn" data-action="add" type="button">
+        <span>＋</span>
+      </button>
+      <button class="mobile-nav-btn" data-view="tasks" type="button">
+        <span>✅</span>
+        <small>משימות</small>
+      </button>
+      <button class="mobile-nav-btn" data-view="planner" type="button">
+        <span>📅</span>
+        <small>שבועי</small>
+      </button>
     </nav>
+  </div>
 
   <div id="taskModal" class="modal hidden">
-    <div class="modal-card">
+    <div class="modal-card clean-modal">
       <div class="modal-head">
-        <h3 id="modalHeading">משימה חדשה</h3>
-        <button id="closeModalBtn" class="x">×</button>
+        <div>
+          <p class="modal-kicker">עריכת משימה</p>
+          <h3 id="modalHeading">פרטי המשימה</h3>
+        </div>
+        <button id="closeModalBtn" class="x" type="button">×</button>
       </div>
 
       <form id="taskForm" class="task-form">

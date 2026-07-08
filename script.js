@@ -6,7 +6,6 @@ const googleReady = window.GOOGLE_CLIENT_ID && !window.GOOGLE_CLIENT_ID.includes
 let supabase = null;
 let user = null;
 let tasks = [];
-let activeView = "dashboard";
 let activeFilter = "all";
 let parsedTasks = [];
 let googleToken = null;
@@ -22,7 +21,8 @@ const views = {
   brain: document.getElementById("brainView"),
   tasks: document.getElementById("tasksView"),
   planner: document.getElementById("plannerView"),
-  summary: document.getElementById("summaryView")
+  summary: document.getElementById("summaryView"),
+  settings: document.getElementById("settingsView")
 };
 
 document.getElementById("dateLine").textContent = new Date().toLocaleDateString("he-IL", {
@@ -33,10 +33,10 @@ document.getElementById("dateLine").textContent = new Date().toLocaleDateString(
 });
 
 if (!supabaseReady) {
-  authMessage.textContent = "צריך להדביק Publishable Key בקובץ config.js";
+  authMessage.textContent = "צריך להדביק Supabase Publishable Key בקובץ config.js";
 } else {
   supabase = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
   init();
 }
@@ -44,20 +44,46 @@ if (!supabaseReady) {
 async function init() {
   const { data } = await supabase.auth.getSession();
   user = data.session?.user || null;
-  user ? await enterApp() : showAuth();
+
+  const hash = new URLSearchParams(window.location.hash.replace("#", ""));
+  const type = hash.get("type");
+  if (type === "recovery") {
+    showResetPassword();
+  } else {
+    user ? await enterApp() : showAuth();
+  }
 
   supabase.auth.onAuthStateChange(async (event, session) => {
     user = session?.user || null;
-
     if (event === "PASSWORD_RECOVERY") {
       showResetPassword();
       return;
     }
-
     user ? await enterApp() : showAuth();
   });
 
   initGoogle();
+}
+
+function showAuth() {
+  authView.classList.remove("hidden");
+  resetPasswordView.classList.add("hidden");
+  appView.classList.add("hidden");
+}
+
+async function enterApp() {
+  authView.classList.add("hidden");
+  resetPasswordView.classList.add("hidden");
+  appView.classList.remove("hidden");
+  document.getElementById("userLabel").textContent = user.user_metadata?.name || user.email;
+  document.getElementById("settingsEmail").textContent = user.email;
+  await loadTasks();
+}
+
+function showResetPassword() {
+  authView.classList.add("hidden");
+  appView.classList.add("hidden");
+  resetPasswordView.classList.remove("hidden");
 }
 
 function initGoogle() {
@@ -73,6 +99,7 @@ function initGoogle() {
         }
         googleToken = response.access_token;
         document.getElementById("googleBtn").textContent = "Google Calendar מחובר";
+        document.getElementById("googleStatusText").textContent = "מחובר";
       }
     });
     return true;
@@ -83,20 +110,6 @@ function initGoogle() {
       if (tryInit()) clearInterval(timer);
     }, 500);
   }
-}
-
-function showAuth() {
-  authView.classList.remove("hidden");
-  resetPasswordView?.classList.add("hidden");
-  appView.classList.add("hidden");
-}
-
-async function enterApp() {
-  authView.classList.add("hidden");
-  resetPasswordView?.classList.add("hidden");
-  appView.classList.remove("hidden");
-  document.getElementById("userLabel").textContent = user.user_metadata?.name || user.email;
-  await loadTasks();
 }
 
 document.getElementById("loginTab").addEventListener("click", () => setAuthMode("login"));
@@ -132,25 +145,85 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
   authMessage.textContent = error ? translateAuthError(error.message) : "נוצר משתמש. אם יש אימות מייל — צריך לאשר במייל.";
 });
 
-document.getElementById("logoutBtn").addEventListener("click", () => supabase.auth.signOut());
-document.getElementById("refreshBtn").addEventListener("click", loadTasks);
-
-document.getElementById("googleBtn").addEventListener("click", () => {
-  if (!googleReady) {
-    alert("כדי להפעיל Google Calendar צריך להדביק GOOGLE_CLIENT_ID בקובץ config.js");
-    return;
-  }
-  if (!tokenClient) {
-    alert("Google עדיין נטען. נסי שוב עוד רגע.");
-    return;
-  }
-  tokenClient.requestAccessToken({ prompt: googleToken ? "" : "consent" });
+document.getElementById("forgotPasswordBtn").addEventListener("click", async () => {
+  const email = document.getElementById("loginEmail").value.trim() || prompt("לאיזה אימייל לשלוח קישור לאיפוס סיסמה?");
+  if (!email) return;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  });
+  authMessage.textContent = error ? translateAuthError(error.message) : "שלחתי לך מייל לאיפוס סיסמה.";
 });
 
-document.getElementById("notifyBtn").addEventListener("click", async () => {
+document.getElementById("resetPasswordForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const password = document.getElementById("newPasswordInput").value;
+  const confirm = document.getElementById("confirmPasswordInput").value;
+  const message = document.getElementById("resetPasswordMessage");
+
+  if (password.length < 6) {
+    message.textContent = "הסיסמה צריכה להיות לפחות 6 תווים.";
+    return;
+  }
+  if (password !== confirm) {
+    message.textContent = "הסיסמאות לא זהות.";
+    return;
+  }
+
+  message.textContent = "מעדכנת סיסמה...";
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    message.textContent = translateAuthError(error.message);
+    return;
+  }
+  message.textContent = "הסיסמה עודכנה בהצלחה.";
+  setTimeout(async () => {
+    const { data } = await supabase.auth.getSession();
+    user = data.session?.user || user;
+    await enterApp();
+  }, 800);
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => supabase.auth.signOut());
+document.getElementById("mobileLogoutBtn").addEventListener("click", () => supabase.auth.signOut());
+document.getElementById("refreshBtn").addEventListener("click", loadTasks);
+
+document.getElementById("googleBtn").addEventListener("click", connectGoogle);
+document.getElementById("settingsGoogleBtn").addEventListener("click", connectGoogle);
+
+function connectGoogle() {
+  if (!googleReady) return alert("צריך להדביק GOOGLE_CLIENT_ID בקובץ config.js");
+  if (!tokenClient) return alert("Google עדיין נטען. נסי שוב עוד רגע.");
+  tokenClient.requestAccessToken({ prompt: googleToken ? "" : "consent" });
+}
+
+document.getElementById("notifyBtn").addEventListener("click", requestNotifications);
+document.getElementById("settingsNotifyBtn").addEventListener("click", requestNotifications);
+
+async function requestNotifications() {
   if (!("Notification" in window)) return alert("הדפדפן לא תומך בהתראות.");
   const permission = await Notification.requestPermission();
   alert(permission === "granted" ? "התראות הופעלו. האתר צריך להיות פתוח כדי לשלוח תזכורות." : "לא אושרו התראות.");
+}
+
+document.getElementById("changePasswordForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const p1 = document.getElementById("settingsNewPassword").value;
+  const p2 = document.getElementById("settingsConfirmPassword").value;
+  const msg = document.getElementById("settingsPasswordMessage");
+
+  if (p1.length < 6) {
+    msg.textContent = "הסיסמה צריכה להיות לפחות 6 תווים.";
+    return;
+  }
+  if (p1 !== p2) {
+    msg.textContent = "הסיסמאות לא זהות.";
+    return;
+  }
+
+  msg.textContent = "מעדכנת...";
+  const { error } = await supabase.auth.updateUser({ password: p1 });
+  msg.textContent = error ? translateAuthError(error.message) : "הסיסמה עודכנה בהצלחה.";
+  if (!error) event.target.reset();
 });
 
 async function loadTasks() {
@@ -169,17 +242,34 @@ function renderAll() {
   renderTasks();
   renderPlanner();
   renderSummary();
+  renderAiCoach();
 }
 
-document.querySelectorAll(".nav").forEach(btn => {
-  btn.addEventListener("click", () => switchView(btn.dataset.view));
+document.querySelectorAll(".nav, .mobile-nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.action === "add") {
+      switchView("dashboard");
+      syncMobileActive("dashboard");
+      document.getElementById("newTaskCard").scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => document.getElementById("homeTitle").focus(), 300);
+      return;
+    }
+    if (btn.dataset.view) switchView(btn.dataset.view);
+  });
 });
 
 function switchView(view) {
-  activeView = view;
-  document.querySelectorAll(".nav").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  document.querySelectorAll(".nav").forEach(btn => btn.classList.toggle("active", btn.dataset.view === view));
   Object.entries(views).forEach(([name, el]) => el.classList.toggle("hidden", name !== view));
+  syncMobileActive(view);
   if (view === "summary") renderSummary();
+  if (window.innerWidth <= 820) window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function syncMobileActive(view) {
+  document.querySelectorAll(".mobile-nav-btn").forEach(button => {
+    button.classList.toggle("active", button.dataset.view === view);
+  });
 }
 
 function renderDashboard() {
@@ -241,42 +331,165 @@ function nextReason(task) {
   return "זו נראית כמו המשימה הבאה הכי נכונה לפי הדדליין והסטטוס.";
 }
 
-document.getElementById("quickAddForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const raw = document.getElementById("quickTitle").value.trim();
-  if (!raw) return;
-  await createTask(parseLineToTask(raw), false);
-  e.target.reset();
-});
+function renderAiCoach() {
+  const box = document.getElementById("aiCoachContent");
+  const open = tasks.filter(t => !isDone(t));
+  const noDate = open.filter(t => !t.deadline);
 
-document.getElementById("newTaskBtn").addEventListener("click", () => openModal());
-
-document.getElementById("taskForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const id = document.getElementById("taskId").value;
-  const sync = document.getElementById("syncCalendar").checked;
-  const payload = {
-    title: document.getElementById("title").value.trim(),
-    category: document.getElementById("category").value,
-    deadline: inputDateToIso(document.getElementById("deadline").value),
-    priority: document.getElementById("priority").value,
-    complexity: document.getElementById("complexity").value,
-    status: document.getElementById("status").value,
-    estimate_minutes: Number(document.getElementById("estimate").value),
-    notes: document.getElementById("notes").value.trim()
-  };
-
-  if (sync) {
-    const existing = id ? tasks.find(t => t.id === id) : null;
-    const eventId = await upsertGoogleCalendarEvent(payload, existing?.google_event_id);
-    if (eventId) payload.google_event_id = eventId;
+  if (!open.length) {
+    box.innerHTML = `<div class="ai-main-pick"><h4>הכל נקי כרגע ✨</h4><p>אין משימות פתוחות. אם משהו קופץ לך לראש, תוסיפי אותו בטופס מתחת.</p></div>`;
+    return;
   }
 
-  if (id) await updateTask(id, payload);
-  else await createTask(payload, false);
-  closeModal();
-});
+  const pick = chooseNextTask();
+  const topThree = [...open].sort((a, b) => aiTaskScore(b) - aiTaskScore(a)).slice(0, 3);
+  const postpone = noDate.filter(t => t.id !== pick?.id).slice(0, 3);
+
+  box.innerHTML = `
+    <div class="ai-main-pick">
+      <h4>${escapeHtml(pick.title)}</h4>
+      <p>${aiCoachReason(pick)}</p>
+      <button class="primary" onclick="window.openEdit('${pick.id}')">לפתוח משימה</button>
+    </div>
+    <div class="ai-mini-row">
+      <div class="ai-mini-box">
+        <strong>היום הייתי מתמקדת ב־</strong>
+        <ul>${topThree.map(task => `<li>${escapeHtml(task.title)} · ${task.estimate_minutes || 30} דק׳</li>`).join("")}</ul>
+      </div>
+      <div class="ai-mini-box">
+        <strong>אפשר לא להילחץ מזה עכשיו</strong>
+        <ul>${postpone.length ? postpone.map(task => `<li>${escapeHtml(task.title)}</li>`).join("") : `<li>אין הרבה דברים שאפשר לדחות כרגע.</li>`}</ul>
+      </div>
+    </div>`;
+}
+
+function aiTaskScore(task) {
+  let score = 0;
+  if (isLate(task)) score += 120;
+  if (isToday(task)) score += 90;
+  if (isThisWeek(task)) score += 40;
+  if (task.priority === "גבוהה") score += 45;
+  if (task.priority === "בינונית") score += 15;
+  if (task.complexity === "קטנה") score += 12;
+  if (Number(task.estimate_minutes || 30) <= 30) score += 8;
+  return score;
+}
+
+function aiCoachReason(task) {
+  if (isLate(task)) return "הייתי מתחילה מזה כי זו משימה באיחור. לא צריך לפתור הכל עכשיו — רק לפתוח אותה ולעשות צעד ראשון.";
+  if (isToday(task)) return "זו משימה להיום, ולכן היא מקבלת עדיפות. אם תסיימי אותה, ירד הרבה רעש מהראש.";
+  if (task.priority === "גבוהה") return "היא מסומנת כדחופה, ולכן הייתי מקדמת אותה לפני משימות קטנות ופחות חשובות.";
+  if (Number(task.estimate_minutes || 30) <= 30) return "זו משימה יחסית קצרה, אז היא טובה להתחלה וליצירת מומנטום בלי להיכנס להצפה.";
+  return "בחרתי בה לפי שילוב של דדליין, דחיפות וזמן משוער.";
+}
+
+document.getElementById("refreshAiCoachBtn").addEventListener("click", renderAiCoach);
+
+function initHomeTaskForm() {
+  document.querySelectorAll(".home-choice-row").forEach(row => {
+    const target = document.getElementById(row.dataset.target);
+    row.querySelectorAll(".home-choice").forEach(button => {
+      button.addEventListener("click", () => {
+        target.value = button.dataset.value;
+        syncHomeChoices();
+      });
+    });
+  });
+
+  document.querySelectorAll(".quick-date").forEach(button => {
+    button.addEventListener("click", () => {
+      setHomeDate(button.dataset.date);
+      document.querySelectorAll(".quick-date").forEach(b => b.classList.toggle("active", b === button));
+    });
+  });
+
+  document.getElementById("homeTitle").addEventListener("input", () => {
+    const raw = document.getElementById("homeTitle").value.trim();
+    if (raw.length < 3) {
+      document.getElementById("homePreview").classList.add("hidden");
+      return;
+    }
+    showHomePreview(parseLineToTask(raw));
+  });
+
+  document.getElementById("homeSmartBtn").addEventListener("click", () => {
+    const raw = document.getElementById("homeTitle").value.trim();
+    if (!raw) return alert("כתבי קודם את המשימה ואז אלחצי סדר לי.");
+    applyParsedToHomeForm(parseLineToTask(raw));
+  });
+
+  document.getElementById("homeTaskForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const raw = document.getElementById("homeTitle").value.trim();
+    if (!raw) return;
+
+    const payload = {
+      title: raw,
+      category: document.getElementById("homeCategory").value || "אחר",
+      deadline: inputDateToIso(document.getElementById("homeDeadline").value),
+      priority: document.getElementById("homePriority").value || "בינונית",
+      complexity: document.getElementById("homeComplexity").value || "בינונית",
+      status: "פתוחה",
+      estimate_minutes: Number(document.getElementById("homeEstimate").value || 30),
+      notes: document.getElementById("homeNotes").value.trim()
+    };
+
+    const sync = document.getElementById("homeSyncCalendar").checked;
+    await createTask(payload, sync);
+
+    event.target.reset();
+    document.getElementById("homeCategory").value = "לימודים";
+    document.getElementById("homePriority").value = "בינונית";
+    document.getElementById("homeEstimate").value = "30";
+    document.getElementById("homeComplexity").value = "בינונית";
+    document.getElementById("homePreview").classList.add("hidden");
+    document.querySelectorAll(".quick-date").forEach(b => b.classList.remove("active"));
+    syncHomeChoices();
+  });
+}
+
+function syncHomeChoices() {
+  document.querySelectorAll(".home-choice-row").forEach(row => {
+    const target = document.getElementById(row.dataset.target);
+    row.querySelectorAll(".home-choice").forEach(button => {
+      button.classList.toggle("selected", String(target.value) === String(button.dataset.value));
+    });
+  });
+}
+
+function applyParsedToHomeForm(parsed) {
+  document.getElementById("homeCategory").value = parsed.category || "אחר";
+  document.getElementById("homePriority").value = parsed.priority || "בינונית";
+  document.getElementById("homeComplexity").value = parsed.complexity || "בינונית";
+  document.getElementById("homeEstimate").value = String(parsed.estimate_minutes || 30);
+  if (parsed.deadline) document.getElementById("homeDeadline").value = isoToInput(parsed.deadline);
+  syncHomeChoices();
+  showHomePreview(parsed);
+}
+
+function showHomePreview(task) {
+  const box = document.getElementById("homePreview");
+  box.innerHTML = `
+    <span>🏷 ${escapeHtml(task.category || "אחר")}</span>
+    <span>📅 ${formatDate(task.deadline)}</span>
+    <span>🔥 ${priorityLabel(task.priority)}</span>
+    <span>⏱ ${task.estimate_minutes || 30} דק׳</span>`;
+  box.classList.remove("hidden");
+}
+
+function setHomeDate(type) {
+  const input = document.getElementById("homeDeadline");
+  if (type === "none") {
+    input.value = "";
+    return;
+  }
+  const d = new Date();
+  if (type === "tomorrow") d.setDate(d.getDate() + 1);
+  if (type === "week") d.setDate(d.getDate() + 7);
+  d.setHours(18, 0, 0, 0);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  input.value = d.toISOString().slice(0, 16);
+}
 
 async function createTask(task, syncCalendar = false) {
   const payload = {
@@ -289,7 +502,8 @@ async function createTask(task, syncCalendar = false) {
     status: task.status || "פתוחה",
     estimate_minutes: task.estimate_minutes || 30,
     notes: task.notes || "",
-    google_event_id: task.google_event_id || null
+    google_event_id: task.google_event_id || null,
+    reminder_sent: false
   };
 
   if (syncCalendar) {
@@ -315,7 +529,6 @@ async function updateTask(id, payload) {
 async function deleteTask(id) {
   const task = tasks.find(t => t.id === id);
   if (task?.google_event_id && googleToken) await deleteGoogleCalendarEvent(task.google_event_id);
-
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) return alert("שגיאה במחיקה: " + error.message);
   await loadTasks();
@@ -345,10 +558,7 @@ async function upsertGoogleCalendarEvent(task, eventId = null) {
     description: `${task.notes || ""}\n\nנוצר מתוך MindFlow`,
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() },
-    reminders: {
-      useDefault: false,
-      overrides: [{ method: "popup", minutes: 30 }]
-    }
+    reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 30 }] }
   };
 
   const url = eventId
@@ -427,8 +637,7 @@ function taskCard(task) {
         <button class="icon-btn calendar" onclick="window.quickCalendar('${task.id}')">יומן</button>
         <button class="icon-btn delete" onclick="window.askDelete('${task.id}')">מחיקה</button>
       </div>
-    </article>
-  `;
+    </article>`;
 }
 
 function filterTask(task, filter) {
@@ -461,7 +670,6 @@ window.askDelete = async (id) => {
 };
 
 function openModal(task = null) {
-  document.getElementById("modalHeading").textContent = task ? "עריכת משימה" : "משימה חדשה";
   document.getElementById("taskId").value = task?.id || "";
   document.getElementById("title").value = task?.title || "";
   document.getElementById("category").value = task?.category || "אחר";
@@ -492,6 +700,31 @@ document.getElementById("deleteBtn").addEventListener("click", async () => {
   closeModal();
 });
 
+document.getElementById("taskForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("taskId").value;
+  const sync = document.getElementById("syncCalendar").checked;
+  const payload = {
+    title: document.getElementById("title").value.trim(),
+    category: document.getElementById("category").value,
+    deadline: inputDateToIso(document.getElementById("deadline").value),
+    priority: document.getElementById("priority").value,
+    complexity: document.getElementById("complexity").value,
+    status: document.getElementById("status").value,
+    estimate_minutes: Number(document.getElementById("estimate").value),
+    notes: document.getElementById("notes").value.trim()
+  };
+
+  if (sync) {
+    const existing = tasks.find(t => t.id === id);
+    const eventId = await upsertGoogleCalendarEvent(payload, existing?.google_event_id);
+    if (eventId) payload.google_event_id = eventId;
+  }
+
+  await updateTask(id, payload);
+  closeModal();
+});
+
 document.getElementById("parseBrainBtn").addEventListener("click", () => {
   const text = document.getElementById("brainInput").value.trim();
   if (!text) return;
@@ -506,8 +739,7 @@ document.getElementById("parseBrainBtn").addEventListener("click", () => {
         <span class="pill">${escapeHtml(t.complexity)}</span>
         <span class="pill">${formatDate(t.deadline)}</span>
       </div>
-    </div>
-  `).join("");
+    </div>`).join("");
 });
 
 document.getElementById("savePreviewBtn").addEventListener("click", async () => {
@@ -523,12 +755,66 @@ document.getElementById("clearBrainBtn").addEventListener("click", () => {
   document.getElementById("previewPanel").classList.add("hidden");
 });
 
+document.querySelectorAll(".time-option").forEach(button => {
+  button.addEventListener("click", () => suggestTasksForTime(Number(button.dataset.minutes)));
+});
+
+function suggestTasksForTime(minutes) {
+  const open = tasks.filter(t => !isDone(t));
+  const fitting = open
+    .filter(t => Number(t.estimate_minutes || 30) <= minutes)
+    .sort((a, b) => scoreForFreeTime(b, minutes) - scoreForFreeTime(a, minutes))
+    .slice(0, 4);
+
+  const panel = document.getElementById("timeSuggestionPanel");
+  const list = document.getElementById("timeSuggestionList");
+  const title = document.getElementById("timeSuggestionTitle");
+
+  title.textContent = `יש לך ${minutes} דקות? אלה המשימות שמתאימות`;
+
+  if (!fitting.length) {
+    list.innerHTML = `<div class="empty">לא מצאתי משימה שמתאימה לזמן הזה. אפשר להוסיף משימה קטנה חדשה.</div>`;
+  } else {
+    list.innerHTML = fitting.map((task, index) => `
+      <article class="plan-step">
+        <div class="plan-number">${index + 1}</div>
+        <div>
+          <h4>${escapeHtml(task.title)}</h4>
+          <p>${freeTimeReason(task)}<br><strong>${task.estimate_minutes || 30} דק׳</strong> · ${formatDate(task.deadline)} · ${priorityLabel(task.priority)}</p>
+          <button class="icon-btn" onclick="window.openEdit('${task.id}')">לפתוח</button>
+        </div>
+      </article>`).join("");
+  }
+
+  panel.classList.remove("hidden");
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scoreForFreeTime(task, minutes) {
+  let score = 0;
+  const estimate = Number(task.estimate_minutes || 30);
+  score += Math.max(0, 40 - Math.abs(minutes - estimate));
+  if (isLate(task)) score += 120;
+  if (isToday(task)) score += 90;
+  if (isThisWeek(task)) score += 35;
+  if (task.priority === "גבוהה") score += 45;
+  if (task.complexity === "קטנה") score += 15;
+  return score;
+}
+
+function freeTimeReason(task) {
+  if (isLate(task)) return "היא באיחור ומתאימה לחלון הזמן שבחרת.";
+  if (isToday(task)) return "היא להיום, והזמן המשוער מתאים למה שיש לך עכשיו.";
+  if (task.priority === "גבוהה") return "היא דחופה ומתאימה לזמן שבחרת.";
+  return "זו משימה שמתאימה לזמן הפנוי שהגדרת.";
+}
+
 function parseLineToTask(line) {
   const lower = line.toLowerCase();
   let category = "אחר";
-  if (/מבחן|קורס|שיעור|סיכום|תואר|פסיכולוגיה|תקשורת|שיבוש|עבודה אקדמית|מטלה/.test(lower)) category = "לימודים";
+  if (/מבחן|קורס|שיעור|סיכום|תואר|פסיכולוגיה|תקשורת|שיבוש|מטלה|עבודה/.test(lower)) category = "לימודים";
   else if (/לקוח|קאבר|רילס|עריכה|צילום|פוסט|סטורי|אינסטגרם|עיצוב|עסק/.test(lower)) category = "עסק";
-  else if (/צבא|יחידה|מפקד|משרד|עבודה/.test(lower)) category = "עבודה";
+  else if (/צבא|יחידה|מפקד|משרד/.test(lower)) category = "עבודה";
   else if (/לקנות|להתקשר|רופא|בית|אישי/.test(lower)) category = "אישי";
 
   const deadline = inferDeadline(lower);
@@ -678,445 +964,4 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-
-/* === MindFlow final: dashboard task form === */
-
-function initHomeTaskForm() {
-  const form = document.getElementById("homeTaskForm");
-  const title = document.getElementById("homeTitle");
-  const smart = document.getElementById("homeSmartBtn");
-
-  if (!form || !title) return;
-
-  document.querySelectorAll(".home-choice-row").forEach(row => {
-    const target = document.getElementById(row.dataset.target);
-    if (!target) return;
-
-    row.querySelectorAll(".home-choice").forEach(button => {
-      button.addEventListener("click", () => {
-        target.value = button.dataset.value;
-        syncHomeChoices();
-      });
-    });
-  });
-
-  document.querySelectorAll(".quick-date").forEach(button => {
-    button.addEventListener("click", () => {
-      setHomeDate(button.dataset.date);
-      document.querySelectorAll(".quick-date").forEach(b => b.classList.toggle("active", b === button));
-    });
-  });
-
-  title.addEventListener("input", () => {
-    const raw = title.value.trim();
-    if (raw.length < 3) {
-      document.getElementById("homePreview").classList.add("hidden");
-      return;
-    }
-    showHomePreview(parseLineToTask(raw));
-  });
-
-  smart?.addEventListener("click", () => {
-    const raw = title.value.trim();
-    if (!raw) return alert("כתבי קודם את המשימה ואז אלחצי סדר לי.");
-    applyParsedToHomeForm(parseLineToTask(raw));
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const raw = title.value.trim();
-    if (!raw) return;
-
-    const payload = {
-      title: raw,
-      category: document.getElementById("homeCategory").value || "אחר",
-      deadline: inputDateToIso(document.getElementById("homeDeadline").value),
-      priority: document.getElementById("homePriority").value || "בינונית",
-      complexity: document.getElementById("homeComplexity").value || "בינונית",
-      status: "פתוחה",
-      estimate_minutes: Number(document.getElementById("homeEstimate").value || 30),
-      notes: document.getElementById("homeNotes").value.trim()
-    };
-
-    const sync = document.getElementById("homeSyncCalendar").checked;
-    await createTask(payload, sync);
-
-    form.reset();
-    document.getElementById("homeCategory").value = "לימודים";
-    document.getElementById("homePriority").value = "בינונית";
-    document.getElementById("homeEstimate").value = "30";
-    document.getElementById("homeComplexity").value = "בינונית";
-    document.getElementById("homePreview").classList.add("hidden");
-    document.querySelectorAll(".quick-date").forEach(b => b.classList.remove("active"));
-    syncHomeChoices();
-  });
-}
-
-function syncHomeChoices() {
-  document.querySelectorAll(".home-choice-row").forEach(row => {
-    const target = document.getElementById(row.dataset.target);
-    if (!target) return;
-    row.querySelectorAll(".home-choice").forEach(button => {
-      button.classList.toggle("selected", String(target.value) === String(button.dataset.value));
-    });
-  });
-}
-
-function applyParsedToHomeForm(parsed) {
-  document.getElementById("homeCategory").value = parsed.category || "אחר";
-  document.getElementById("homePriority").value = parsed.priority || "בינונית";
-  document.getElementById("homeComplexity").value = parsed.complexity || "בינונית";
-  document.getElementById("homeEstimate").value = String(parsed.estimate_minutes || 30);
-  if (parsed.deadline) document.getElementById("homeDeadline").value = isoToInput(parsed.deadline);
-  syncHomeChoices();
-  showHomePreview(parsed);
-}
-
-function showHomePreview(task) {
-  const box = document.getElementById("homePreview");
-  if (!box) return;
-  box.innerHTML = `
-    <span>🏷 ${escapeHtml(task.category || "אחר")}</span>
-    <span>📅 ${formatDate(task.deadline)}</span>
-    <span>🔥 ${priorityLabel(task.priority)}</span>
-    <span>⏱ ${task.estimate_minutes || 30} דק׳</span>
-  `;
-  box.classList.remove("hidden");
-}
-
-function setHomeDate(type) {
-  const input = document.getElementById("homeDeadline");
-  if (!input) return;
-
-  if (type === "none") {
-    input.value = "";
-    return;
-  }
-
-  const d = new Date();
-  if (type === "tomorrow") d.setDate(d.getDate() + 1);
-  if (type === "week") d.setDate(d.getDate() + 7);
-  d.setHours(18, 0, 0, 0);
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  input.value = d.toISOString().slice(0, 16);
-}
-
-function initFreeTimeSuggestions() {
-  document.querySelectorAll(".time-option").forEach(button => {
-    button.addEventListener("click", () => suggestTasksForTime(Number(button.dataset.minutes)));
-  });
-}
-
-function suggestTasksForTime(minutes) {
-  const open = tasks.filter(t => !isDone(t));
-  const fitting = open
-    .filter(t => Number(t.estimate_minutes || 30) <= minutes)
-    .sort((a, b) => scoreForFreeTime(b, minutes) - scoreForFreeTime(a, minutes))
-    .slice(0, 4);
-
-  const panel = document.getElementById("timeSuggestionPanel");
-  const list = document.getElementById("timeSuggestionList");
-  const title = document.getElementById("timeSuggestionTitle");
-
-  if (!panel || !list || !title) return;
-
-  title.textContent = `יש לך ${minutes} דקות? אלה המשימות שמתאימות`;
-
-  if (!fitting.length) {
-    list.innerHTML = `<div class="empty">לא מצאתי משימה שמתאימה לזמן הזה. אפשר להוסיף משימה קטנה חדשה.</div>`;
-  } else {
-    list.innerHTML = fitting.map((task, index) => `
-      <article class="plan-step">
-        <div class="plan-number">${index + 1}</div>
-        <div>
-          <h4>${escapeHtml(task.title)}</h4>
-          <p>${freeTimeReason(task)}<br><strong>${task.estimate_minutes || 30} דק׳</strong> · ${formatDate(task.deadline)} · ${priorityLabel(task.priority)}</p>
-          <button class="icon-btn" onclick="window.openEdit('${task.id}')">לפתוח</button>
-        </div>
-      </article>
-    `).join("");
-  }
-
-  panel.classList.remove("hidden");
-  panel.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function scoreForFreeTime(task, minutes) {
-  let score = 0;
-  const estimate = Number(task.estimate_minutes || 30);
-  score += Math.max(0, 40 - Math.abs(minutes - estimate));
-  if (isLate(task)) score += 120;
-  if (isToday(task)) score += 90;
-  if (isThisWeek(task)) score += 35;
-  if (task.priority === "גבוהה") score += 45;
-  if (task.complexity === "קטנה") score += 15;
-  return score;
-}
-
-function freeTimeReason(task) {
-  if (isLate(task)) return "היא באיחור ומתאימה לחלון הזמן שבחרת.";
-  if (isToday(task)) return "היא להיום, והזמן המשוער מתאים למה שיש לך עכשיו.";
-  if (task.priority === "גבוהה") return "היא דחופה ומתאימה לזמן שבחרת.";
-  return "זו משימה שמתאימה לזמן הפנוי שהגדרת.";
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  initHomeTaskForm();
-  initFreeTimeSuggestions();
-
-  const newTaskBtn = document.getElementById("newTaskBtn");
-  if (newTaskBtn) {
-    newTaskBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      document.getElementById("newTaskCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(() => document.getElementById("homeTitle")?.focus(), 350);
-    }, true);
-  }
-});
-
-
-/* === Password reset handlers === */
-
-function showResetPassword() {
-  authView.classList.add("hidden");
-  appView.classList.add("hidden");
-  resetPasswordView?.classList.remove("hidden");
-  setTimeout(() => document.getElementById("newPasswordInput")?.focus(), 150);
-}
-
-document.getElementById("forgotPasswordBtn")?.addEventListener("click", async () => {
-  if (!supabase) return;
-
-  const email =
-    document.getElementById("loginEmail")?.value.trim() ||
-    prompt("לאיזה אימייל לשלוח קישור לאיפוס סיסמה?");
-
-  if (!email) return;
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  });
-
-  authMessage.textContent = error
-    ? translateAuthError(error.message)
-    : "שלחתי לך מייל לאיפוס סיסמה. פתחי את הקישור מהמייל.";
-});
-
-document.getElementById("resetPasswordForm")?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const password = document.getElementById("newPasswordInput").value;
-  const confirm = document.getElementById("confirmPasswordInput").value;
-  const message = document.getElementById("resetPasswordMessage");
-
-  if (password.length < 6) {
-    message.textContent = "הסיסמה צריכה להיות לפחות 6 תווים.";
-    return;
-  }
-
-  if (password !== confirm) {
-    message.textContent = "הסיסמאות לא זהות.";
-    return;
-  }
-
-  message.textContent = "מעדכנת סיסמה...";
-
-  const { error } = await supabase.auth.updateUser({ password });
-
-  if (error) {
-    message.textContent = translateAuthError(error.message);
-    return;
-  }
-
-  message.textContent = "הסיסמה עודכנה בהצלחה. מעבירה אותך לאפליקציה...";
-  setTimeout(async () => {
-    const { data } = await supabase.auth.getSession();
-    user = data.session?.user || user;
-    await enterApp();
-  }, 900);
-});
-
-
-/* === MindFlow Mobile Navigation === */
-
-function initMobileNavigation() {
-  const mobileButtons = document.querySelectorAll(".mobile-nav-btn");
-
-  mobileButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      const action = button.dataset.action;
-      const view = button.dataset.view;
-
-      if (action === "add") {
-        if (typeof switchView === "function") switchView("dashboard");
-        syncMobileActive("dashboard");
-        const target = document.getElementById("newTaskCard") || document.querySelector(".dashboard-create-card") || document.querySelector(".quick-panel") || document.querySelector(".add-card");
-        target?.scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => {
-          document.getElementById("homeTitle")?.focus();
-          document.getElementById("dashboardTaskInput")?.focus();
-          document.getElementById("quickTitle")?.focus();
-          document.getElementById("title")?.focus();
-        }, 350);
-        return;
-      }
-
-      if (view && typeof switchView === "function") {
-        switchView(view);
-        syncMobileActive(view);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    });
-  });
-
-  document.querySelectorAll(".nav, .nav-btn").forEach(button => {
-    button.addEventListener("click", () => {
-      if (button.dataset.view) syncMobileActive(button.dataset.view);
-    });
-  });
-
-  document.getElementById("mobileLogoutBtn")?.addEventListener("click", () => {
-    document.getElementById("logoutBtn")?.click();
-  });
-
-  const newTaskBtn = document.getElementById("newTaskBtn") || document.getElementById("quickAddOpenBtn");
-  if (newTaskBtn) {
-    newTaskBtn.addEventListener("click", (event) => {
-      if (window.innerWidth <= 820) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (typeof switchView === "function") switchView("dashboard");
-        syncMobileActive("dashboard");
-        const target = document.getElementById("newTaskCard") || document.querySelector(".dashboard-create-card") || document.querySelector(".quick-panel") || document.querySelector(".add-card");
-        target?.scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => {
-          document.getElementById("homeTitle")?.focus();
-          document.getElementById("dashboardTaskInput")?.focus();
-          document.getElementById("quickTitle")?.focus();
-          document.getElementById("title")?.focus();
-        }, 350);
-      }
-    }, true);
-  }
-}
-
-function syncMobileActive(view) {
-  document.querySelectorAll(".mobile-nav-btn").forEach(button => {
-    button.classList.toggle("active", button.dataset.view === view);
-  });
-}
-
-document.addEventListener("DOMContentLoaded", initMobileNavigation);
-
-
-/* === MindFlow AI Coach recommendation === */
-
-function renderAiCoach() {
-  const box = document.getElementById("aiCoachContent");
-  if (!box) return;
-
-  const open = tasks.filter(t => !isDone(t));
-  const late = open.filter(isLate);
-  const today = open.filter(isToday);
-  const quick = open.filter(t => Number(t.estimate_minutes || 30) <= 30);
-  const noDate = open.filter(t => !t.deadline);
-
-  if (!open.length) {
-    box.innerHTML = `
-      <div class="ai-main-pick">
-        <h4>הכל נקי כרגע ✨</h4>
-        <p>אין משימות פתוחות. אם משהו קופץ לך לראש, תוסיפי אותו בטופס מתחת.</p>
-      </div>
-    `;
-    return;
-  }
-
-  const pick = chooseNextTask();
-  const topThree = [...open]
-    .sort((a, b) => aiTaskScore(b) - aiTaskScore(a))
-    .slice(0, 3);
-
-  const postpone = noDate
-    .filter(t => t.id !== pick?.id)
-    .slice(0, 3);
-
-  box.innerHTML = `
-    <div class="ai-main-pick">
-      <h4>${escapeHtml(pick.title)}</h4>
-      <p>${aiCoachReason(pick, late.length, today.length)}</p>
-      <button class="primary" onclick="window.openEdit('${pick.id}')">לפתוח משימה</button>
-    </div>
-
-    <div class="ai-mini-row">
-      <div class="ai-mini-box">
-        <strong>היום הייתי מתמקדת ב־</strong>
-        <ul>
-          ${topThree.map(task => `<li>${escapeHtml(task.title)} · ${task.estimate_minutes || 30} דק׳</li>`).join("")}
-        </ul>
-      </div>
-
-      <div class="ai-mini-box">
-        <strong>אפשר לא להילחץ מזה עכשיו</strong>
-        <ul>
-          ${
-            postpone.length
-              ? postpone.map(task => `<li>${escapeHtml(task.title)}</li>`).join("")
-              : `<li>אין הרבה דברים שאפשר לדחות כרגע.</li>`
-          }
-        </ul>
-      </div>
-    </div>
-  `;
-}
-
-function aiTaskScore(task) {
-  let score = 0;
-  if (isLate(task)) score += 120;
-  if (isToday(task)) score += 90;
-  if (isThisWeek(task)) score += 40;
-  if (task.priority === "גבוהה") score += 45;
-  if (task.priority === "בינונית") score += 15;
-  if (task.complexity === "קטנה") score += 12;
-  if (Number(task.estimate_minutes || 30) <= 30) score += 8;
-  if (task.deadline) {
-    const hours = (new Date(task.deadline) - new Date()) / 36e5;
-    if (hours > 0 && hours < 48) score += 20;
-  }
-  return score;
-}
-
-function aiCoachReason(task, lateCount, todayCount) {
-  if (isLate(task)) {
-    return `הייתי מתחילה מזה כי זו משימה באיחור. לא צריך לפתור הכל עכשיו — רק לפתוח אותה ולעשות צעד ראשון.`;
-  }
-
-  if (isToday(task)) {
-    return `זו משימה להיום, ולכן היא מקבלת עדיפות. אם תסיימי אותה, ירד הרבה רעש מהראש.`;
-  }
-
-  if (task.priority === "גבוהה") {
-    return `היא מסומנת כדחופה, ולכן הייתי מקדמת אותה לפני משימות קטנות ופחות חשובות.`;
-  }
-
-  if (Number(task.estimate_minutes || 30) <= 30) {
-    return `זו משימה יחסית קצרה, אז היא טובה להתחלה וליצירת מומנטום בלי להיכנס להצפה.`;
-  }
-
-  if (lateCount || todayCount) {
-    return `בחרתי בה לפי שילוב של דדליין, דחיפות וזמן משוער.`;
-  }
-
-  return `אין משהו דחוף במיוחד, אז זו נראית כמו המשימה הכי נכונה לקדם עכשיו.`;
-}
-
-document.getElementById("refreshAiCoachBtn")?.addEventListener("click", renderAiCoach);
-
-// Hook into existing dashboard render without changing the task form
-const originalRenderDashboardForAiCoach = typeof renderDashboard === "function" ? renderDashboard : null;
-if (originalRenderDashboardForAiCoach) {
-  renderDashboard = function() {
-    originalRenderDashboardForAiCoach();
-    renderAiCoach();
-  };
-}
+initHomeTaskForm();

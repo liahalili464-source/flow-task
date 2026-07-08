@@ -21,6 +21,7 @@ create table if not exists public.tasks (
 alter table public.tasks add column if not exists google_event_id text;
 alter table public.tasks add column if not exists reminder_sent boolean default false;
 alter table public.tasks add column if not exists estimate_minutes integer default 30;
+alter table public.tasks add column if not exists notes text default '';
 
 alter table public.tasks enable row level security;
 
