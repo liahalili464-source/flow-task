@@ -1008,3 +1008,115 @@ function syncMobileActive(view) {
 }
 
 document.addEventListener("DOMContentLoaded", initMobileNavigation);
+
+
+/* === MindFlow AI Coach recommendation === */
+
+function renderAiCoach() {
+  const box = document.getElementById("aiCoachContent");
+  if (!box) return;
+
+  const open = tasks.filter(t => !isDone(t));
+  const late = open.filter(isLate);
+  const today = open.filter(isToday);
+  const quick = open.filter(t => Number(t.estimate_minutes || 30) <= 30);
+  const noDate = open.filter(t => !t.deadline);
+
+  if (!open.length) {
+    box.innerHTML = `
+      <div class="ai-main-pick">
+        <h4>הכל נקי כרגע ✨</h4>
+        <p>אין משימות פתוחות. אם משהו קופץ לך לראש, תוסיפי אותו בטופס מתחת.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const pick = chooseNextTask();
+  const topThree = [...open]
+    .sort((a, b) => aiTaskScore(b) - aiTaskScore(a))
+    .slice(0, 3);
+
+  const postpone = noDate
+    .filter(t => t.id !== pick?.id)
+    .slice(0, 3);
+
+  box.innerHTML = `
+    <div class="ai-main-pick">
+      <h4>${escapeHtml(pick.title)}</h4>
+      <p>${aiCoachReason(pick, late.length, today.length)}</p>
+      <button class="primary" onclick="window.openEdit('${pick.id}')">לפתוח משימה</button>
+    </div>
+
+    <div class="ai-mini-row">
+      <div class="ai-mini-box">
+        <strong>היום הייתי מתמקדת ב־</strong>
+        <ul>
+          ${topThree.map(task => `<li>${escapeHtml(task.title)} · ${task.estimate_minutes || 30} דק׳</li>`).join("")}
+        </ul>
+      </div>
+
+      <div class="ai-mini-box">
+        <strong>אפשר לא להילחץ מזה עכשיו</strong>
+        <ul>
+          ${
+            postpone.length
+              ? postpone.map(task => `<li>${escapeHtml(task.title)}</li>`).join("")
+              : `<li>אין הרבה דברים שאפשר לדחות כרגע.</li>`
+          }
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function aiTaskScore(task) {
+  let score = 0;
+  if (isLate(task)) score += 120;
+  if (isToday(task)) score += 90;
+  if (isThisWeek(task)) score += 40;
+  if (task.priority === "גבוהה") score += 45;
+  if (task.priority === "בינונית") score += 15;
+  if (task.complexity === "קטנה") score += 12;
+  if (Number(task.estimate_minutes || 30) <= 30) score += 8;
+  if (task.deadline) {
+    const hours = (new Date(task.deadline) - new Date()) / 36e5;
+    if (hours > 0 && hours < 48) score += 20;
+  }
+  return score;
+}
+
+function aiCoachReason(task, lateCount, todayCount) {
+  if (isLate(task)) {
+    return `הייתי מתחילה מזה כי זו משימה באיחור. לא צריך לפתור הכל עכשיו — רק לפתוח אותה ולעשות צעד ראשון.`;
+  }
+
+  if (isToday(task)) {
+    return `זו משימה להיום, ולכן היא מקבלת עדיפות. אם תסיימי אותה, ירד הרבה רעש מהראש.`;
+  }
+
+  if (task.priority === "גבוהה") {
+    return `היא מסומנת כדחופה, ולכן הייתי מקדמת אותה לפני משימות קטנות ופחות חשובות.`;
+  }
+
+  if (Number(task.estimate_minutes || 30) <= 30) {
+    return `זו משימה יחסית קצרה, אז היא טובה להתחלה וליצירת מומנטום בלי להיכנס להצפה.`;
+  }
+
+  if (lateCount || todayCount) {
+    return `בחרתי בה לפי שילוב של דדליין, דחיפות וזמן משוער.`;
+  }
+
+  return `אין משהו דחוף במיוחד, אז זו נראית כמו המשימה הכי נכונה לקדם עכשיו.`;
+}
+
+document.getElementById("refreshAiCoachBtn")?.addEventListener("click", renderAiCoach);
+
+// Hook into existing dashboard render without changing the task form
+const originalRenderDashboardForAiCoach = typeof renderDashboard === "function" ? renderDashboard : null;
+if (originalRenderDashboardForAiCoach) {
+  renderDashboard = function() {
+    originalRenderDashboardForAiCoach();
+    renderAiCoach();
+  };
+}
