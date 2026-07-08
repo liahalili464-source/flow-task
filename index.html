@@ -25,6 +25,7 @@
         <input id="loginEmail" type="email" placeholder="אימייל" required />
         <input id="loginPassword" type="password" placeholder="סיסמה" required />
         <button class="primary" type="submit">להיכנס</button>
+        <button id="forgotPasswordBtn" class="text-button" type="button">שכחתי סיסמה</button>
       </form>
 
       <form id="signupForm" class="auth-form hidden">
@@ -38,7 +39,31 @@
     </div>
   </section>
 
+  <section id="resetPasswordView" class="auth-view hidden">
+    <div class="auth-card">
+      <div class="logo">✦</div>
+      <h1>בחירת סיסמה חדשה</h1>
+      <p>הכניסי סיסמה חדשה לחשבון שלך.</p>
+
+      <form id="resetPasswordForm" class="auth-form">
+        <input id="newPasswordInput" type="password" placeholder="סיסמה חדשה - לפחות 6 תווים" required />
+        <input id="confirmPasswordInput" type="password" placeholder="אימות סיסמה חדשה" required />
+        <button class="primary" type="submit">עדכון סיסמה</button>
+      </form>
+
+      <p id="resetPasswordMessage" class="message"></p>
+    </div>
+  </section>
+
   <div id="appView" class="app hidden">
+    <header class="mobile-topbar">
+      <div class="mobile-brand">
+        <span class="mobile-logo">✦</span>
+        <strong>MindFlow</strong>
+      </div>
+      <button id="mobileLogoutBtn" class="mobile-mini-btn" type="button">יציאה</button>
+    </header>
+
     <aside class="sidebar">
       <div class="brand">
         <div class="mini-logo">✦</div>
@@ -82,6 +107,107 @@
           <span id="weekLine">0 השבוע</span>
         </div>
 
+        <section id="newTaskCard" class="new-task-card">
+          <div class="new-task-head">
+            <div>
+              <p class="section-eyebrow">הוספה מהירה</p>
+              <h3>משימה חדשה</h3>
+              <p>מוסיפים משימה בצורה מסודרת, בלי להרגיש שזה עוד טופס.</p>
+            </div>
+          </div>
+
+          <form id="homeTaskForm" class="home-task-form">
+            <label class="home-title-label">
+              <span>מה צריך לעשות?</span>
+              <textarea id="homeTitle" rows="2" placeholder="לדוגמה: לסיים עבודה בפסיכולוגיה עד ראשון" required></textarea>
+            </label>
+
+            <div id="homePreview" class="home-preview hidden"></div>
+
+            <div class="home-task-layout">
+              <section class="home-field deadline-field">
+                <div class="home-field-title">📅 דדליין</div>
+                <div class="quick-date-row">
+                  <button type="button" class="quick-date" data-date="today">היום</button>
+                  <button type="button" class="quick-date" data-date="tomorrow">מחר</button>
+                  <button type="button" class="quick-date" data-date="week">השבוע</button>
+                  <button type="button" class="quick-date" data-date="none">בלי תאריך</button>
+                </div>
+                <input id="homeDeadline" type="datetime-local" />
+              </section>
+
+              <section class="home-field">
+                <div class="home-field-title">🏷 תחום</div>
+                <div class="home-choice-row" data-target="homeCategory">
+                  <button type="button" class="home-choice selected" data-value="לימודים">📚 לימודים</button>
+                  <button type="button" class="home-choice" data-value="עסק">💼 עסק</button>
+                  <button type="button" class="home-choice" data-value="עבודה">🏢 עבודה</button>
+                  <button type="button" class="home-choice" data-value="לקוחות">🤝 לקוחות</button>
+                  <button type="button" class="home-choice" data-value="אישי">🏠 אישי</button>
+                  <button type="button" class="home-choice" data-value="אחר">✨ אחר</button>
+                </div>
+                <input id="homeCategory" type="hidden" value="לימודים" />
+              </section>
+
+              <section class="home-field">
+                <div class="home-field-title">🔥 דחיפות</div>
+                <div class="home-choice-row three" data-target="homePriority">
+                  <button type="button" class="home-choice" data-value="נמוכה">🟢 רגוע</button>
+                  <button type="button" class="home-choice selected" data-value="בינונית">🟡 רגיל</button>
+                  <button type="button" class="home-choice danger-choice" data-value="גבוהה">🔴 דחוף</button>
+                </div>
+                <input id="homePriority" type="hidden" value="בינונית" />
+              </section>
+
+              <section class="home-field">
+                <div class="home-field-title">⏱ זמן משוער</div>
+                <div class="home-choice-row four" data-target="homeEstimate">
+                  <button type="button" class="home-choice" data-value="15">15 דק׳</button>
+                  <button type="button" class="home-choice selected" data-value="30">30 דק׳</button>
+                  <button type="button" class="home-choice" data-value="60">שעה</button>
+                  <button type="button" class="home-choice" data-value="120">שעתיים+</button>
+                </div>
+                <input id="homeEstimate" type="hidden" value="30" />
+              </section>
+            </div>
+
+            <details class="home-advanced">
+              <summary>אפשרויות נוספות</summary>
+              <div class="home-advanced-inner">
+                <label>
+                  מורכבות
+                  <select id="homeComplexity">
+                    <option value="קטנה">קטנה</option>
+                    <option value="בינונית" selected>בינונית</option>
+                    <option value="מורכבת">מורכבת</option>
+                  </select>
+                </label>
+
+                <label class="home-calendar-toggle">
+                  <div>
+                    <strong>Google Calendar</strong>
+                    <p>להוסיף גם ליומן כשיש דדליין</p>
+                  </div>
+                  <span class="home-switch">
+                    <input id="homeSyncCalendar" type="checkbox" />
+                    <i></i>
+                  </span>
+                </label>
+
+                <label class="notes-full">
+                  הערות
+                  <textarea id="homeNotes" rows="3" placeholder="קישור, פירוט, מה בדיוק צריך לעשות..."></textarea>
+                </label>
+              </div>
+            </details>
+
+            <div class="home-task-actions">
+              <button id="homeSmartBtn" type="button" class="soft inline">✨ סדר לי</button>
+              <button type="submit" class="primary home-add-btn">להוסיף משימה</button>
+            </div>
+          </form>
+        </section>
+
         <section class="free-time-card">
           <div>
             <h3>יש לך זמן פנוי?</h3>
@@ -103,24 +229,6 @@
             </div>
           </div>
           <div id="timeSuggestionList" class="daily-plan-list"></div>
-        </section>
-
-        <section class="ai-plan-strip">
-          <div>
-            <h3>רוצה שאסדר לך את היום?</h3>
-            <p>MindFlow יבחר עד 3 משימות לפי דחיפות, דדליין וזמן משוער.</p>
-          </div>
-          <button id="planDayBtn" class="primary">✨ תכנני לי את היום</button>
-        </section>
-
-        <section id="dailyPlanPanel" class="panel daily-plan-panel hidden">
-          <div class="panel-head">
-            <div>
-              <h3>התוכנית המוצעת להיום</h3>
-              <p>זו המלצה חכמה בסיסית לפי המשימות שלך. אפשר לשנות ידנית.</p>
-            </div>
-          </div>
-          <div id="dailyPlanList" class="daily-plan-list"></div>
         </section>
 
         <section class="focus-grid">
@@ -145,16 +253,6 @@
           </article>
         </section>
 
-        <section class="panel quick-panel">
-          <div>
-            <h3>הוספה מהירה</h3>
-            <p>כתבי איך שזה בראש. אפשר גם “עד ראשון”, “מחר”, “דחוף”.</p>
-          </div>
-          <form id="quickAddForm" class="quick-add">
-            <input id="quickTitle" placeholder="לדוגמה: לסיים עבודה בפסיכולוגיה עד ראשון" required />
-            <button class="primary" type="submit">להוסיף</button>
-          </form>
-        </section>
       </section>
 
       <section id="brainView" class="view hidden">
@@ -237,124 +335,100 @@
       </section>
     </main>
   </div>
+
+
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+      <button class="mobile-nav-btn active" data-view="dashboard" type="button"><span>🏠</span><small>היום</small></button>
+      <button class="mobile-nav-btn" data-view="brain" type="button"><span>🧠</span><small>בריין</small></button>
+      <button class="mobile-nav-btn mobile-add-btn" data-action="add" type="button"><span>＋</span></button>
+      <button class="mobile-nav-btn" data-view="tasks" type="button"><span>✅</span><small>משימות</small></button>
+      <button class="mobile-nav-btn" data-view="planner" type="button"><span>📅</span><small>שבועי</small></button>
+    </nav>
+
   <div id="taskModal" class="modal hidden">
-    <div class="create-sheet">
-      <div class="create-header">
-        <button id="closeModalBtn" class="close-pill">×</button>
-        <div>
-          <p id="modalKicker" class="modal-kicker">משימה חדשה</p>
-          <h3 id="modalHeading">מה קפץ לך לראש?</h3>
-        </div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalHeading">משימה חדשה</h3>
+        <button id="closeModalBtn" class="x">×</button>
       </div>
 
-      <form id="taskForm" class="create-form">
+      <form id="taskForm" class="task-form">
         <input id="taskId" type="hidden" />
 
-        <section class="create-hero-input">
-          <label for="title">המשימה</label>
-          <textarea id="title" required rows="2" placeholder="לדוגמה: לערוך פודקאסט עד מחר בערב"></textarea>
-          <button id="smartFillBtn" class="mini-ai-btn" type="button">✨ סדר לי אוטומטית</button>
-        </section>
+        <label>
+          שם המשימה
+          <input id="title" required />
+        </label>
 
-        <section class="create-section">
-          <div class="section-title">מתי זה צריך לקרות?</div>
-          <div class="date-shortcuts">
-            <button type="button" class="date-chip" data-date="today">היום</button>
-            <button type="button" class="date-chip" data-date="tomorrow">מחר</button>
-            <button type="button" class="date-chip" data-date="week">השבוע</button>
-            <button type="button" class="date-chip" data-date="none">בלי תאריך</button>
-          </div>
-          <input id="deadline" type="datetime-local" class="soft-input" />
-        </section>
-
-        <section class="create-section">
-          <div class="section-title">תחום</div>
-          <div class="bubble-row" data-target="category">
-            <button type="button" class="bubble selected" data-value="לימודים">📚 לימודים</button>
-            <button type="button" class="bubble" data-value="עסק">💼 עסק</button>
-            <button type="button" class="bubble" data-value="עבודה">🏢 עבודה</button>
-            <button type="button" class="bubble" data-value="לקוחות">🤝 לקוחות</button>
-            <button type="button" class="bubble" data-value="אישי">🏠 אישי</button>
-            <button type="button" class="bubble" data-value="אחר">✨ אחר</button>
-          </div>
-          <select id="category" class="native-hidden">
-            <option>לימודים</option><option>עסק</option><option>עבודה</option><option>לקוחות</option><option>אישי</option><option>אחר</option>
-          </select>
-        </section>
-
-        <section class="create-section compact-grid">
-          <div>
-            <div class="section-title">דחיפות</div>
-            <div class="bubble-row small" data-target="priority">
-              <button type="button" class="bubble" data-value="נמוכה">רגוע</button>
-              <button type="button" class="bubble selected" data-value="בינונית">רגיל</button>
-              <button type="button" class="bubble danger-bubble" data-value="גבוהה">דחוף</button>
-            </div>
-            <select id="priority" class="native-hidden">
-              <option value="גבוהה">גבוהה</option><option value="בינונית" selected>בינונית</option><option value="נמוכה">נמוכה</option>
+        <div class="form-grid">
+          <label>
+            תחום
+            <select id="category">
+              <option>לימודים</option>
+              <option>עסק</option>
+              <option>עבודה</option>
+              <option>לקוחות</option>
+              <option>אישי</option>
+              <option>אחר</option>
             </select>
-          </div>
-
-          <div>
-            <div class="section-title">גודל</div>
-            <div class="bubble-row small" data-target="complexity">
-              <button type="button" class="bubble" data-value="קטנה">קטנה</button>
-              <button type="button" class="bubble selected" data-value="בינונית">בינונית</button>
-              <button type="button" class="bubble" data-value="מורכבת">גדולה</button>
-            </div>
-            <select id="complexity" class="native-hidden">
-              <option value="קטנה">קטנה</option><option value="בינונית" selected>בינונית</option><option value="מורכבת">מורכבת</option>
-            </select>
-          </div>
-        </section>
-
-        <section class="create-section">
-          <div class="section-title">כמה זמן זה בערך?</div>
-          <div class="bubble-row time-row" data-target="estimate">
-            <button type="button" class="bubble" data-value="15">15 דק׳</button>
-            <button type="button" class="bubble selected" data-value="30">30 דק׳</button>
-            <button type="button" class="bubble" data-value="60">שעה</button>
-            <button type="button" class="bubble" data-value="120">שעתיים+</button>
-          </div>
-          <select id="estimate" class="native-hidden">
-            <option value="15">15 דקות</option><option value="30" selected>30 דקות</option><option value="60">שעה</option><option value="120">שעתיים+</option>
-          </select>
-        </section>
-
-        <section class="create-section calendar-line">
-          <div>
-            <strong>Google Calendar</strong>
-            <p>ליצור/לעדכן גם אירוע ביומן</p>
-          </div>
-          <label class="simple-switch">
-            <input id="syncCalendar" type="checkbox" />
-            <span></span>
           </label>
-        </section>
 
-        <details class="extra-details">
-          <summary>עוד אפשרויות</summary>
+          <label>
+            דדליין
+            <input id="deadline" type="datetime-local" />
+          </label>
 
-          <div class="extra-inner">
-            <label>
-              סטטוס
-              <select id="status">
-                <option value="פתוחה" selected>פתוחה</option>
-                <option value="בתהליך">בתהליך</option>
-                <option value="מחכה למישהו">מחכה למישהו</option>
-                <option value="בוצע">בוצע</option>
-              </select>
-            </label>
+          <label>
+            דחיפות
+            <select id="priority">
+              <option value="גבוהה">גבוהה</option>
+              <option value="בינונית" selected>בינונית</option>
+              <option value="נמוכה">נמוכה</option>
+            </select>
+          </label>
 
-            <label>
-              הערות
-              <textarea id="notes" placeholder="קישור, פירוט, מה בדיוק צריך לעשות..."></textarea>
-            </label>
-          </div>
-        </details>
+          <label>
+            מורכבות
+            <select id="complexity">
+              <option value="קטנה">קטנה</option>
+              <option value="בינונית" selected>בינונית</option>
+              <option value="מורכבת">מורכבת</option>
+            </select>
+          </label>
 
-        <div class="create-actions">
-          <button class="primary create-save" type="submit">להוסיף למשימות</button>
+          <label>
+            סטטוס
+            <select id="status">
+              <option value="פתוחה" selected>פתוחה</option>
+              <option value="בתהליך">בתהליך</option>
+              <option value="מחכה למישהו">מחכה למישהו</option>
+              <option value="בוצע">בוצע</option>
+            </select>
+          </label>
+
+          <label>
+            זמן משוער
+            <select id="estimate">
+              <option value="15">15 דקות</option>
+              <option value="30" selected>30 דקות</option>
+              <option value="60">שעה</option>
+              <option value="120">שעתיים+</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="checkbox-row">
+          <input id="syncCalendar" type="checkbox" />
+          להוסיף/לעדכן גם ב-Google Calendar
+        </label>
+
+        <label>
+          הערות
+          <textarea id="notes"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button class="primary" type="submit">שמירה</button>
           <button id="deleteBtn" class="danger hidden" type="button">מחיקה</button>
         </div>
       </form>
