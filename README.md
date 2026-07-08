@@ -1,28 +1,5 @@
-# Lishu Flow
+# TaskFlow
 
-גרסה קלילה וזורמת יותר למרכז המשימות.
+Hebrew RTL task planning app with Supabase Auth, per-user cloud tasks, Brain Dump, daily dashboard, weekly planner and summaries.
 
-## מה יש
-- עיצוב יותר אפליקטיבי ונעים
-- תפריט צד
-- כרטיסיות סטטוס
-- הוספת משימה מהירה
-- פרטים מתקדמים רק אם צריך
-- סינונים: היום, השבוע, איחור, זריזים, בלי תאריך
-- סיכום משימות
-- התראות דפדפן בסיסיות
-- שמירה בדפדפן עם localStorage
-
-## העלאה ל-Vercel
-1. לפתוח תיקייה / ריפוזיטורי בגיטהאב
-2. להעלות:
-   - index.html
-   - style.css
-   - script.js
-3. ב-Vercel לבחור New Project
-4. לבחור את הריפוזיטורי
-5. Deploy
-
-## הערה חשובה
-זו עדיין גרסה ללא דאטהבייס. המשימות נשמרות על אותו דפדפן.
-כדי שזה יעבוד מכל מחשב/טלפון צריך לחבר Supabase/Firebase.
+Read SETUP.md.
