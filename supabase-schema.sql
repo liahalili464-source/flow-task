@@ -45,3 +45,11 @@ drop policy if exists "tasks_delete_own" on public.tasks;
 create policy "tasks_delete_own"
 on public.tasks for delete
 using (auth.uid() = user_id);
+
+
+-- Subtasks / project splitting
+alter table public.tasks
+add column if not exists parent_task_id uuid references public.tasks(id) on delete cascade;
+
+create index if not exists tasks_parent_task_id_idx
+on public.tasks(parent_task_id);

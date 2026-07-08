@@ -505,6 +505,70 @@
     </div>
   </div>
 
+
+  <div id="splitTaskModal" class="modal hidden">
+    <div class="modal-card clean-modal">
+      <div class="modal-head">
+        <div>
+          <p class="modal-kicker">פיצול משימה</p>
+          <h3>🧩 להפוך לפרויקט קטן</h3>
+        </div>
+        <button id="closeSplitModalBtn" class="x" type="button">×</button>
+      </div>
+
+      <form id="splitTaskForm" class="task-form">
+        <input id="splitParentId" type="hidden" />
+
+        <label>
+          המשימה הראשית
+          <input id="splitParentTitle" readonly />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            סוג פיצול
+            <select id="splitTemplate">
+              <option value="videos">פרויקט סרטונים</option>
+              <option value="study">למידה למבחן</option>
+              <option value="custom">רשימה מותאמת אישית</option>
+            </select>
+          </label>
+
+          <label>
+            כמה חלקים?
+            <input id="splitCount" type="number" min="1" max="50" value="5" />
+          </label>
+        </div>
+
+        <label id="splitCustomWrap" class="hidden">
+          תתי־משימות — כל שורה תהפוך למשימה
+          <textarea id="splitCustomLines" placeholder="לדוגמה:
+לצפות בשיעור 1
+לסכם שיעור 1
+לתרגל שאלות
+חזרה אחרונה"></textarea>
+        </label>
+
+        <label>
+          דדליין סופי
+          <input id="splitFinalDeadline" type="datetime-local" />
+        </label>
+
+        <label class="checkbox-row">
+          <input id="splitSpreadDates" type="checkbox" checked />
+          לפזר דדליינים בהדרגה עד הדדליין הסופי
+        </label>
+
+        <div id="splitPreview" class="split-preview"></div>
+
+        <div class="modal-actions">
+          <button class="primary" type="submit">יצירת תתי־משימות</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
   <script src="config.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script type="module" src="script.js"></script>

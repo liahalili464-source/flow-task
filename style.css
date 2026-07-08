@@ -928,3 +928,75 @@ textarea { min-height: 110px; resize: vertical; }
 @media (min-width: 821px) {
   .mobile-bottom-nav, .mobile-topbar { display: none !important; }
 }
+
+
+/* === Split task / subtasks === */
+
+.subtask-list {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(128,87,255,.055);
+  border: 1px solid rgba(128,87,255,.10);
+  display: grid;
+  gap: 8px;
+}
+
+.subtask-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.78);
+}
+
+.subtask-row.done {
+  opacity: .55;
+}
+
+.subtask-row.done .subtask-title {
+  text-decoration: line-through;
+}
+
+.subtask-title {
+  font-weight: 900;
+}
+
+.subtask-meta {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.parent-pill {
+  background: #ede7ff;
+  color: var(--purple-dark);
+}
+
+.split-preview {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(128,87,255,.06);
+  border: 1px solid rgba(128,87,255,.10);
+}
+
+.split-preview-item {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.8);
+  font-weight: 900;
+}
+
+@media (max-width: 820px) {
+  .subtask-row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .subtask-meta {
+    grid-column: 2;
+  }
+}

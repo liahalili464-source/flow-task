@@ -503,6 +503,7 @@ async function createTask(task, syncCalendar = false) {
     estimate_minutes: task.estimate_minutes || 30,
     notes: task.notes || "",
     google_event_id: task.google_event_id || null,
+    parent_task_id: task.parent_task_id || null,
     reminder_sent: false
   };
 
@@ -629,11 +630,14 @@ function taskCard(task) {
           <span class="pill ${late ? "late" : ""}">${formatDate(task.deadline)}</span>
           <span class="pill">${task.estimate_minutes || 30} דק׳</span>
           ${task.google_event_id ? `<span class="pill">ביומן</span>` : ""}
+          ${task.parent_task_id ? `<span class="pill parent-pill">תת־משימה</span>` : ""}
         </div>
         ${task.notes ? `<p class="notes">${escapeHtml(task.notes)}</p>` : ""}
+        ${renderSubtasks(task.id)}
       </div>
       <div class="actions">
         <button class="icon-btn" onclick="window.openEdit('${task.id}')">עריכה</button>
+        <button class="icon-btn" onclick="window.openSplit('${task.id}')">פצל</button>
         <button class="icon-btn calendar" onclick="window.quickCalendar('${task.id}')">יומן</button>
         <button class="icon-btn delete" onclick="window.askDelete('${task.id}')">מחיקה</button>
       </div>
@@ -962,6 +966,161 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+
+/* === Split task / subtasks === */
+
+function renderSubtasks(parentId) {
+  const children = tasks
+    .filter(t => t.parent_task_id === parentId)
+    .sort(taskSort);
+
+  if (!children.length) return "";
+
+  return `
+    <div class="subtask-list">
+      ${children.map(child => `
+        <div class="subtask-row ${isDone(child) ? "done" : ""}">
+          <button class="check" onclick="window.toggleDone('${child.id}')"></button>
+          <span class="subtask-title">${escapeHtml(child.title)}</span>
+          <span class="subtask-meta">${formatDate(child.deadline)} · ${child.estimate_minutes || 30} דק׳</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+window.openSplit = (id) => {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+
+  document.getElementById("splitParentId").value = task.id;
+  document.getElementById("splitParentTitle").value = task.title;
+  document.getElementById("splitFinalDeadline").value = isoToInput(task.deadline);
+  document.getElementById("splitTemplate").value = detectSplitTemplate(task);
+  document.getElementById("splitCount").value = document.getElementById("splitTemplate").value === "videos" ? 11 : 5;
+  toggleSplitCustom();
+  renderSplitPreview();
+  document.getElementById("splitTaskModal").classList.remove("hidden");
+};
+
+function detectSplitTemplate(task) {
+  const text = `${task.title} ${task.category}`.toLowerCase();
+  if (/וידאו|וידאוים|סרטון|סרטונים|ריל|רילס|עריכה|לקוח/.test(text)) return "videos";
+  if (/מבחן|ללמוד|למידה|קורס|שיעור|סיכום/.test(text)) return "study";
+  return "custom";
+}
+
+function closeSplitModal() {
+  document.getElementById("splitTaskModal").classList.add("hidden");
+}
+
+document.getElementById("closeSplitModalBtn")?.addEventListener("click", closeSplitModal);
+document.getElementById("splitTaskModal")?.addEventListener("click", (event) => {
+  if (event.target.id === "splitTaskModal") closeSplitModal();
+});
+
+document.getElementById("splitTemplate")?.addEventListener("change", () => {
+  toggleSplitCustom();
+  renderSplitPreview();
+});
+
+document.getElementById("splitCount")?.addEventListener("input", renderSplitPreview);
+document.getElementById("splitCustomLines")?.addEventListener("input", renderSplitPreview);
+
+function toggleSplitCustom() {
+  const isCustom = document.getElementById("splitTemplate").value === "custom";
+  document.getElementById("splitCustomWrap").classList.toggle("hidden", !isCustom);
+}
+
+function getSplitTitles() {
+  const template = document.getElementById("splitTemplate").value;
+  const count = Math.max(1, Math.min(50, Number(document.getElementById("splitCount").value || 1)));
+  const parentTitle = document.getElementById("splitParentTitle").value;
+
+  if (template === "videos") {
+    return Array.from({ length: count }, (_, i) => `סרטון ${i + 1} — ${parentTitle}`);
+  }
+
+  if (template === "study") {
+    const base = [
+      "מיפוי החומר למבחן",
+      "ללמוד נושא 1",
+      "ללמוד נושא 2",
+      "לתרגל שאלות",
+      "מבחן לדוגמה",
+      "חזרה אחרונה"
+    ];
+    if (count <= base.length) return base.slice(0, count);
+    return [...base, ...Array.from({ length: count - base.length }, (_, i) => `חזרה נוספת ${i + 1}`)];
+  }
+
+  const custom = document.getElementById("splitCustomLines").value
+    .split("\\n")
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  return custom.length ? custom : ["תת־משימה 1", "תת־משימה 2", "תת־משימה 3"];
+}
+
+function renderSplitPreview() {
+  const preview = document.getElementById("splitPreview");
+  if (!preview) return;
+
+  const titles = getSplitTitles();
+  preview.innerHTML = titles
+    .slice(0, 12)
+    .map(title => `<div class="split-preview-item">${escapeHtml(title)}</div>`)
+    .join("");
+
+  if (titles.length > 12) {
+    preview.innerHTML += `<div class="split-preview-item">ועוד ${titles.length - 12}...</div>`;
+  }
+}
+
+document.getElementById("splitTaskForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const parentId = document.getElementById("splitParentId").value;
+  const parent = tasks.find(t => t.id === parentId);
+  if (!parent) return;
+
+  const titles = getSplitTitles();
+  const finalDeadline = inputDateToIso(document.getElementById("splitFinalDeadline").value);
+  const spread = document.getElementById("splitSpreadDates").checked;
+
+  const subtasks = titles.map((title, index) => ({
+    title,
+    category: parent.category || "אחר",
+    priority: parent.priority || "בינונית",
+    complexity: "קטנה",
+    status: "פתוחה",
+    estimate_minutes: parent.category === "לימודים" ? 45 : 30,
+    notes: `חלק מתוך: ${parent.title}`,
+    parent_task_id: parentId,
+    deadline: spread ? distributedDeadline(finalDeadline, index, titles.length) : finalDeadline
+  }));
+
+  for (const subtask of subtasks) {
+    await createTask(subtask, false);
+  }
+
+  closeSplitModal();
+  switchView("tasks");
+});
+
+function distributedDeadline(finalDeadline, index, total) {
+  if (!finalDeadline) return null;
+
+  const end = new Date(finalDeadline);
+  const now = new Date();
+  const step = (end.getTime() - now.getTime()) / Math.max(total, 1);
+  const d = new Date(now.getTime() + step * (index + 1));
+  d.setHours(18, 0, 0, 0);
+
+  if (d > end) return end.toISOString();
+  return d.toISOString();
 }
 
 initHomeTaskForm();
