@@ -452,10 +452,11 @@ window.askDelete = async (id) => {
 };
 
 function openModal(task = null) {
-  document.getElementById("modalHeading").textContent = task ? "עריכת משימה" : "משימה חדשה";
+  document.getElementById("modalHeading").textContent = task ? "עריכת משימה" : "✨ מה צריך לעשות?";
+  document.querySelector(".modal-kicker").textContent = task ? "עריכת משימה" : "משימה חדשה";
   document.getElementById("taskId").value = task?.id || "";
   document.getElementById("title").value = task?.title || "";
-  document.getElementById("category").value = task?.category || "אחר";
+  document.getElementById("category").value = task?.category || "לימודים";
   document.getElementById("deadline").value = isoToInput(task?.deadline);
   document.getElementById("priority").value = task?.priority || "בינונית";
   document.getElementById("complexity").value = task?.complexity || "בינונית";
@@ -464,6 +465,7 @@ function openModal(task = null) {
   document.getElementById("notes").value = task?.notes || "";
   document.getElementById("syncCalendar").checked = Boolean(task?.google_event_id);
   document.getElementById("deleteBtn").classList.toggle("hidden", !task);
+  syncChoiceButtons();
   document.getElementById("taskModal").classList.remove("hidden");
 }
 
@@ -668,3 +670,86 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
+
+/* === MindFlow UI Upgrade scripts === */
+
+function initChoiceButtons() {
+  document.querySelectorAll(".choice-grid").forEach(group => {
+    const targetId = group.dataset.target;
+    const select = document.getElementById(targetId);
+    if (!select) return;
+
+    group.querySelectorAll(".choice").forEach(button => {
+      button.addEventListener("click", () => {
+        select.value = button.dataset.value;
+        syncChoiceButtons();
+      });
+    });
+  });
+}
+
+function syncChoiceButtons() {
+  document.querySelectorAll(".choice-grid").forEach(group => {
+    const targetId = group.dataset.target;
+    const select = document.getElementById(targetId);
+    if (!select) return;
+
+    group.querySelectorAll(".choice").forEach(button => {
+      button.classList.toggle("selected", String(select.value) === String(button.dataset.value));
+    });
+  });
+}
+
+function buildDailyPlan() {
+  const open = tasks.filter(t => !isDone(t));
+  const ranked = [...open].sort((a, b) => scoreTask(b) - scoreTask(a)).slice(0, 3);
+
+  const panel = document.getElementById("dailyPlanPanel");
+  const list = document.getElementById("dailyPlanList");
+
+  if (!ranked.length) {
+    list.innerHTML = `<div class="empty">אין כרגע משימות פתוחות לתכנון.</div>`;
+  } else {
+    list.innerHTML = ranked.map((task, index) => `
+      <article class="plan-step">
+        <div class="plan-number">${index + 1}</div>
+        <div>
+          <h4>${escapeHtml(task.title)}</h4>
+          <p>${planReason(task)}<br><strong>${formatDate(task.deadline)}</strong> · ${task.estimate_minutes || 30} דק׳ · ${priorityLabel(task.priority)}</p>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  panel.classList.remove("hidden");
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scoreTask(task) {
+  let score = 0;
+  if (isLate(task)) score += 100;
+  if (isToday(task)) score += 80;
+  if (isThisWeek(task)) score += 35;
+  if (task.priority === "גבוהה") score += 40;
+  if (task.priority === "בינונית") score += 15;
+  if (task.complexity === "קטנה") score += 12;
+  if (task.deadline) {
+    const hours = (new Date(task.deadline) - new Date()) / 36e5;
+    if (hours > 0) score += Math.max(0, 24 - Math.min(24, hours));
+  }
+  return score;
+}
+
+function planReason(task) {
+  if (isLate(task)) return "כדאי להתחיל ממנה כי היא כבר באיחור.";
+  if (isToday(task)) return "זו משימה להיום, אז היא מקבלת עדיפות גבוהה.";
+  if (task.priority === "גבוהה") return "היא מסומנת כדחופה ולכן כדאי לקדם אותה מוקדם.";
+  if (task.complexity === "קטנה") return "זו משימה קצרה יחסית, טובה ליצירת מומנטום.";
+  return "היא נבחרה לפי שילוב של דדליין, דחיפות וזמן משוער.";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initChoiceButtons();
+  document.getElementById("planDayBtn")?.addEventListener("click", buildDailyPlan);
+});

@@ -82,6 +82,24 @@
           <span id="weekLine">0 השבוע</span>
         </div>
 
+        <section class="ai-plan-strip">
+          <div>
+            <h3>רוצה שאסדר לך את היום?</h3>
+            <p>MindFlow יבחר עד 3 משימות לפי דחיפות, דדליין וזמן משוער.</p>
+          </div>
+          <button id="planDayBtn" class="primary">✨ תכנני לי את היום</button>
+        </section>
+
+        <section id="dailyPlanPanel" class="panel daily-plan-panel hidden">
+          <div class="panel-head">
+            <div>
+              <h3>התוכנית המוצעת להיום</h3>
+              <p>זו המלצה חכמה בסיסית לפי המשימות שלך. אפשר לשנות ידנית.</p>
+            </div>
+          </div>
+          <div id="dailyPlanList" class="daily-plan-list"></div>
+        </section>
+
         <section class="focus-grid">
           <article class="panel large-panel">
             <div class="panel-head">
@@ -198,89 +216,127 @@
   </div>
 
   <div id="taskModal" class="modal hidden">
-    <div class="modal-card">
+    <div class="modal-card task-modal-card">
       <div class="modal-head">
-        <h3 id="modalHeading">משימה חדשה</h3>
+        <div>
+          <p class="modal-kicker">משימה חדשה</p>
+          <h3 id="modalHeading">✨ מה צריך לעשות?</h3>
+        </div>
         <button id="closeModalBtn" class="x">×</button>
       </div>
 
-      <form id="taskForm" class="task-form">
+      <form id="taskForm" class="task-form pretty-task-form">
         <input id="taskId" type="hidden" />
 
-        <label>
-          שם המשימה
-          <input id="title" required />
-        </label>
+        <section class="task-title-block">
+          <label for="title">שם המשימה</label>
+          <input id="title" class="title-input" required placeholder="לסיים עבודה בפסיכולוגיה עד ראשון..." />
+          <p class="field-hint">טיפ: אפשר לכתוב חופשי, למשל “לשלוח קאבר ללקוח מחר”.</p>
+        </section>
 
-        <div class="form-grid">
-          <label>
-            תחום
-            <select id="category">
-              <option>לימודים</option>
-              <option>עסק</option>
-              <option>עבודה</option>
-              <option>לקוחות</option>
-              <option>אישי</option>
-              <option>אחר</option>
-            </select>
+        <section class="choice-section">
+          <div class="choice-title">🏷 תחום</div>
+          <div class="choice-grid" data-target="category">
+            <button type="button" class="choice selected" data-value="לימודים">📚 לימודים</button>
+            <button type="button" class="choice" data-value="עסק">💼 עסק</button>
+            <button type="button" class="choice" data-value="עבודה">🏢 עבודה</button>
+            <button type="button" class="choice" data-value="לקוחות">🤝 לקוחות</button>
+            <button type="button" class="choice" data-value="אישי">🏠 אישי</button>
+            <button type="button" class="choice" data-value="אחר">✨ אחר</button>
+          </div>
+          <select id="category" class="hidden-native-select">
+            <option>לימודים</option>
+            <option>עסק</option>
+            <option>עבודה</option>
+            <option>לקוחות</option>
+            <option>אישי</option>
+            <option>אחר</option>
+          </select>
+        </section>
+
+        <section class="modal-cardlet">
+          <label for="deadline">📅 דדליין</label>
+          <input id="deadline" type="datetime-local" />
+        </section>
+
+        <section class="choice-section">
+          <div class="choice-title">🔥 דחיפות</div>
+          <div class="choice-grid three" data-target="priority">
+            <button type="button" class="choice calm" data-value="נמוכה">🟢 רגוע</button>
+            <button type="button" class="choice selected" data-value="בינונית">🟡 רגיל</button>
+            <button type="button" class="choice hot" data-value="גבוהה">🔴 דחוף</button>
+          </div>
+          <select id="priority" class="hidden-native-select">
+            <option value="גבוהה">גבוהה</option>
+            <option value="בינונית" selected>בינונית</option>
+            <option value="נמוכה">נמוכה</option>
+          </select>
+        </section>
+
+        <section class="choice-section">
+          <div class="choice-title">⚡ מורכבות</div>
+          <div class="choice-grid three" data-target="complexity">
+            <button type="button" class="choice" data-value="קטנה">⚡ זריז</button>
+            <button type="button" class="choice selected" data-value="בינונית">🧩 בינוני</button>
+            <button type="button" class="choice" data-value="מורכבת">🚀 גדול</button>
+          </div>
+          <select id="complexity" class="hidden-native-select">
+            <option value="קטנה">קטנה</option>
+            <option value="בינונית" selected>בינונית</option>
+            <option value="מורכבת">מורכבת</option>
+          </select>
+        </section>
+
+        <section class="choice-section">
+          <div class="choice-title">⏱ זמן משוער</div>
+          <div class="choice-grid four" data-target="estimate">
+            <button type="button" class="choice" data-value="15">15 דק׳</button>
+            <button type="button" class="choice selected" data-value="30">30 דק׳</button>
+            <button type="button" class="choice" data-value="60">שעה</button>
+            <button type="button" class="choice" data-value="120">שעתיים+</button>
+          </div>
+          <select id="estimate" class="hidden-native-select">
+            <option value="15">15 דקות</option>
+            <option value="30" selected>30 דקות</option>
+            <option value="60">שעה</option>
+            <option value="120">שעתיים+</option>
+          </select>
+        </section>
+
+        <section class="choice-section status-section">
+          <div class="choice-title">📌 סטטוס</div>
+          <div class="choice-grid four" data-target="status">
+            <button type="button" class="choice selected" data-value="פתוחה">פתוחה</button>
+            <button type="button" class="choice" data-value="בתהליך">בתהליך</button>
+            <button type="button" class="choice" data-value="מחכה למישהו">מחכה</button>
+            <button type="button" class="choice" data-value="בוצע">בוצע</button>
+          </div>
+          <select id="status" class="hidden-native-select">
+            <option value="פתוחה" selected>פתוחה</option>
+            <option value="בתהליך">בתהליך</option>
+            <option value="מחכה למישהו">מחכה למישהו</option>
+            <option value="בוצע">בוצע</option>
+          </select>
+        </section>
+
+        <section class="calendar-toggle-card">
+          <div>
+            <strong>📅 Google Calendar</strong>
+            <p>להוסיף או לעדכן את המשימה גם ביומן.</p>
+          </div>
+          <label class="switch">
+            <input id="syncCalendar" type="checkbox" />
+            <span></span>
           </label>
+        </section>
 
-          <label>
-            דדליין
-            <input id="deadline" type="datetime-local" />
-          </label>
+        <details class="notes-details">
+          <summary>📝 הערות נוספות</summary>
+          <textarea id="notes" placeholder="קישורים, פירוט, מה צריך לעשות בפועל..."></textarea>
+        </details>
 
-          <label>
-            דחיפות
-            <select id="priority">
-              <option value="גבוהה">גבוהה</option>
-              <option value="בינונית" selected>בינונית</option>
-              <option value="נמוכה">נמוכה</option>
-            </select>
-          </label>
-
-          <label>
-            מורכבות
-            <select id="complexity">
-              <option value="קטנה">קטנה</option>
-              <option value="בינונית" selected>בינונית</option>
-              <option value="מורכבת">מורכבת</option>
-            </select>
-          </label>
-
-          <label>
-            סטטוס
-            <select id="status">
-              <option value="פתוחה" selected>פתוחה</option>
-              <option value="בתהליך">בתהליך</option>
-              <option value="מחכה למישהו">מחכה למישהו</option>
-              <option value="בוצע">בוצע</option>
-            </select>
-          </label>
-
-          <label>
-            זמן משוער
-            <select id="estimate">
-              <option value="15">15 דקות</option>
-              <option value="30" selected>30 דקות</option>
-              <option value="60">שעה</option>
-              <option value="120">שעתיים+</option>
-            </select>
-          </label>
-        </div>
-
-        <label class="checkbox-row">
-          <input id="syncCalendar" type="checkbox" />
-          להוסיף/לעדכן גם ב-Google Calendar
-        </label>
-
-        <label>
-          הערות
-          <textarea id="notes"></textarea>
-        </label>
-
-        <div class="modal-actions">
-          <button class="primary" type="submit">שמירה</button>
+        <div class="modal-actions sticky-actions">
+          <button class="primary save-big" type="submit">✨ שמירה</button>
           <button id="deleteBtn" class="danger hidden" type="button">מחיקה</button>
         </div>
       </form>
