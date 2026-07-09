@@ -1057,8 +1057,10 @@ function getSplitTitles() {
   }
 
   const custom = document.getElementById("splitCustomLines").value
-    .split("\\n")
-    .map(x => x.trim())
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map(x => x.replace(/^[-•*]\s*/, "").trim())
     .filter(Boolean);
 
   return custom.length ? custom : ["תת־משימה 1", "תת־משימה 2", "תת־משימה 3"];
